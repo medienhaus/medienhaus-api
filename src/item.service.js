@@ -490,7 +490,7 @@ export class ItemService {
 
     // Get the spaces for the available languages
     const languageSpaces = {}
-    const spaceSummary = await matrixClient.getSpaceSummary(projectSpaceId, 0)
+    const spaceSummary = await matrixClient.getRoomHierarchy(projectSpaceId, 100, 100)
 
     spaceSummary.rooms.map(languageSpace => {
       if (languageSpace.room_id == projectSpaceId) return
@@ -498,7 +498,7 @@ export class ItemService {
     })
 
     // Get the actual content block rooms for the given language
-    const contentRooms = await matrixClient.getSpaceSummary(languageSpaces[language], 0)
+    const contentRooms = await matrixClient.getRoomHierarchy(languageSpaces[language], 100, 100)
     // console.log(contentRooms)
     await Promise.all(contentRooms.rooms.map(async (contentRoom) => {
       // Skip the language space itself
@@ -579,9 +579,9 @@ export class ItemService {
     return {
       id: id,
       allocation: space?.allocation,
-      wrapper: space?.wrapper,
+      type: space?.wrapper,
       name: space?.name,
-      type: space?.space,
+      template: space?.space,
       thumbnail: space?.thumbnail,
       thumbnail_full_size: space?.thumbnail_full_size,
       origin: {
@@ -710,8 +710,8 @@ export class ItemService {
     return {
       id: space.id,
       name: space?.name,
-      type: space?.type,
-      wrapper: space?.wrapper
+      template: space?.type,
+      type: space?.wrapper
     }
   }
 
@@ -887,9 +887,9 @@ export class ItemService {
     if (metaEvent?.content?.deleted) return
     return {
       name: spaceName,
-      type: metaEvent?.content?.type,
+      template: metaEvent?.content?.type,
       topicEn: topicEn,
-      wrapper: wrapper,
+      type: wrapper,
       topicDe: topicDe,
       parent: parent.name,
       parentSpaceId: parent.room_id,
