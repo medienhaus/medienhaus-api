@@ -3,6 +3,7 @@ name: Deploy to api.dev.
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
