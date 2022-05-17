@@ -88,7 +88,7 @@ export class ItemService {
           ret[space?.room_id].stateEvents = stateEvents
         }
         await new Promise(r => setTimeout(r, 1))
-        Logger.log('get stateEvents:\t' +i + '/' + hierarchy?.rooms.length)
+        Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
       // }))
       }
       return ret
@@ -616,7 +616,15 @@ export class ItemService {
 
   getPath (id) {
     // console.log(this._findPath(this.structure[this.configService.get('matrix.root_context_space_id')], id, {}))
-    return this._findPath(this.structure, id, {})
+
+    const path = this._findPath(Object.values(this.structure)[0], id, {})
+
+    if (path) {
+      const parent = Object.values(this.structure)[0]
+      delete parent.children
+
+      return { [Object.keys(this.structure)[0]]: { ...parent, children: path } }
+    }
   }
 
   getTree (id) {
@@ -660,19 +668,34 @@ export class ItemService {
 
   _findPath (structure, id, trace) {
     let re
+
     if (structure.room_id === id) {
-      // console.log('id')
-      return { [id]: { name: structure.name, room_id: structure.room_id, template: structure.template } }
+      console.log('id')
+      return { name: structure.name, id: structure.room_id, room_id: structure.room_id, template: structure.template }
     } else {
       _.forEach(structure?.children, child => {
         const ret = this._findPath(child, id, trace)
-        re = ret
         if (ret) {
-          //  console.log({ [structure.room_id]: { name: structure.name, room_id: structure.room_id, type: structure.type, children: ret } })
-          return { [id]: { name: structure.name, room_id: structure.room_id, type: structure?.type, template: structure.template, children: ret } }
+          if (ret.name) {
+            re = { [child.room_id]: { name: child.name, room_id: child.room_id, type: child?.type, template: child.template }}
+          } else {
+            re = { [child.room_id]: { name: child.name, room_id: child.room_id, type: child?.type, template: child.template, children: ret } }
+          }
         }
+
+        // if (ret) {
+        //   console.log({ [child.room_id]: { name: child.name, room_id: child.room_id, type: child?.type, template: child.template, children: ret } })
+        //   //  console.log({ [structure.room_id]: { name: structure.name, room_id: structure.room_id, type: structure.type, children: ret } })
+        //   return { [child.room_id]: { name: child.name, room_id: child.room_id, type: child?.type, template: child.template, children: ret } }
+        // }
       })
     }
+    // if(!re) {console.log(re)}
+    // console.log(re)
+    // if (re && Object.values(re)[0]?.children) {
+    //   return re
+    // }
+
     return re
   }
 
