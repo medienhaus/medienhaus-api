@@ -2,13 +2,13 @@
 export default () => ({
   matrix: {
     homeserver_base_url: 'https://dev.medienhaus.udk-berlin.de',
-    user_id: '@rundgang22-bot:dev.medienhaus.udk-berlin.de',
-    access_token: 'syt_cnVuZGdhbmcyMi1ib3Q_PtmCSjVkRrRjqTRigPgP_4VfUr1',
-    root_context_space_id: '!RjkxcBlidmPgaIlbwN:dev.medienhaus.udk-berlin.de'
+    user_id: '@rundgang22-dummy-4:dev.medienhaus.udk-berlin.de',
+    access_token: 'syt_cnVuZGdhbmcyMi1kdW1teS00_vlELIPvnvzgxovZfxcqH_210yhO',
+    root_context_space_id: '!yGwpTLQiIMoyuhGggS:dev.medienhaus.udk-berlin.de'
   },
   fetch: {
-    depth: 10,
-    max: 100
+    depth: 500,
+    max: 10000
   },
   application: {
     name: 'rundgang22',
@@ -33,7 +33,8 @@ export default () => ({
       item: [
         'item',
         'studentproject',
-        'content'
+        'project',
+        'event'
       ],
       context: [
         'context',
@@ -42,7 +43,16 @@ export default () => ({
         'institution',
         'structure',
         'structure-element',
-        'structure-root'
+        'structure-root',
+        'Universität',
+        'Fakultät',
+        'Institut',
+        'Studiengang',
+        'Entwurfsbereich',
+        'location-university',
+        'location-building',
+        'location-level',
+        'location-room'
       ],
       content: [
         'lang',
