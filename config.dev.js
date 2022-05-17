@@ -33,7 +33,8 @@ export default () => ({
       item: [
         'item',
         'studentproject',
-        'content'
+        'project',
+        'event'
       ],
       context: [
         'context',
