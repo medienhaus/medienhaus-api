@@ -169,10 +169,12 @@ export class ItemService {
       }
 
       if (metaEvent?.content?.template !== 'lang' && !(configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
+        
         if (
           configService.get('attributable.spaceTypes.item').some(f => f === metaEvent?.content?.template) &&
         (metaEvent.content.published ? metaEvent.content.published === 'public' : (joinRulesEvent && joinRulesEvent.content.join_rule === 'public'))
         ) {
+
           published = 'public'
 
           const languageSpaceIds = (stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key))
@@ -180,7 +182,6 @@ export class ItemService {
           const languageSpaces = languageSpaceIds.map(languageSpace => {
             return _.find(rawSpaces, room => room.room_id === languageSpace)
           })
-          /// //XXXXXX TEMP REV POSITION OLD
           // fetch descriptions
           const en = languageSpaces.filter(room => room.name === 'en')
           topicEn = en[0].topic || undefined
@@ -195,18 +196,23 @@ export class ItemService {
         } else {
           if (!configService.get('attributable.spaceTypes.context').some(f => f === metaEvent?.content?.template)) {
             published = 'draft'
+            console.log('a')
           } else {
+            console.log('b')
             const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
               const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
               return r
             }
             )
+            console.log(stateEvents)
 
             _.forEach(potentialChildren, child => {
               if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
                 children.push(child.room_id)
+                console.log(child.room_id)
               }
             })
+            
           }
         }
       } else {
@@ -588,6 +594,9 @@ export class ItemService {
     if (space?.parentSpaceId) {
       parents.push(space?.parentSpaceId)
     }
+
+
+    console.log(this.allSpaces[id])
 
     return {
       id: id,
