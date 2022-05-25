@@ -139,12 +139,14 @@ export class ItemService {
       const joinRulesEvent = _.find(stateEvents, { type: 'm.room.join_rules' })
 
       const parent = {}
+      const parents = []
 
       _.forEach(rawSpaces, space => {
         const children = (_.filter(space.stateEvents, event => event.type === 'm.space.child'))
 
         _.forEach(children, child => {
           if (child?.state_key === spaceId) {
+            parents.push({ name: space.name, room_id: space.room_id })
             parent.name = space.name
             parent.room_id = space.room_id
           }
@@ -250,6 +252,7 @@ export class ItemService {
         topicDe: topicDe,
         parent: parent.name,
         parentSpaceId: parent.room_id,
+        parents: parents,
         authors: authors,
         published: published,
         children: children,
@@ -610,9 +613,13 @@ export class ItemService {
     if (!space) return
 
     const rawSpace = _.find(this._allRawSpaces, { room_id: id })
-    const parents = []
-    if (space?.parentSpaceId) {
-      parents.push(space?.parentSpaceId)
+    const parentIds = []
+    if (space?.parents.length > 0) {
+      space.parents.forEach(parent => {
+        if (!(parentIds.indexOf(parent.room_id) > -1)) {
+          parentIds.push(parent.room_id)
+        }
+      })
     }
 
     return {
@@ -634,8 +641,8 @@ export class ItemService {
         EN: space?.topicEn,
         DE: space?.topicDe
       },
-      parents: parents,
-      localDepth: 'todo',
+      parents: parentIds,
+      localDepth: this.getPathList(id)?.length,
       ...this._abstractTypes(this._sortChildren(space.children)) // seems to return the wrong spaces, fixing later
     }
   }
