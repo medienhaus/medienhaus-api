@@ -655,7 +655,6 @@ export class ItemService {
   }
 
   getTree (id) {
-  
     // return this._findSubTree(this.getStructure({
     //   filter: this.configService.get('attributable.matrix.context')
     // })[this.configService.get('matrix.root_context_space_id')], id)
@@ -707,16 +706,16 @@ export class ItemService {
   _findPath (structure, id, trace) {
     let re
 
-    if (structure.room_id === id) {
+    if (structure.id === id) {
       return { name: structure.name, id: structure.room_id, room_id: structure.room_id, template: structure.template }
     } else {
       _.forEach(structure?.children, child => {
         const ret = this._findPath(child, id, trace)
         if (ret) {
           if (ret.name) {
-            re = { [child.room_id]: { name: child.name, room_id: child.room_id, type: child?.type, template: child.template } }
+            re = { [child.id]: { name: child.name, id: child.id, room_id: child.room_id, type: child?.type, template: child.template } }
           } else {
-            re = { [child.room_id]: { name: child.name, room_id: child.room_id, type: child?.type, template: child.template, children: ret } }
+            re = { [child.id]: { name: child.name, id: child.id, room_id: child.room_id, type: child?.type, template: child.template, children: ret } }
           }
         }
 
@@ -851,6 +850,26 @@ export class ItemService {
     return this._findSubTree(this.getStructure({
       filter: this.configService.get('attributable.spaceTypes.context')
     })[this.configService.get('matrix.root_context_space_id')], id)
+  }
+
+  getPathList (id) {
+    const path = this.getPath(id)
+    if (!path) return []
+    const firstEntry = { ...Object.values(path)[0] }
+    delete firstEntry.children
+    return this._getPathListFlatter(Object.values(path)[0], [firstEntry], Object.keys(path)[0])
+  }
+
+  _getPathListFlatter (pathSection, list, parentId) {
+    _.forEach(pathSection?.children, (child, childId) => {
+      console.log(child)
+      const ele = { ...child }
+      delete ele.children
+      ele.parent = parentId
+      list.push(ele)
+      list = this._getPathListFlatter(child, list, childId)
+    })
+    return list
   }
 
   /// //// POST

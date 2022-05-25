@@ -28,6 +28,12 @@ export class ApiV2Controller {
     return this.itemService.getPath(id)
   }
 
+  @Get('/api/v2/:id/pathlist')
+  @Bind(Param())
+  apiV2GetPathList ({ id }) {
+    return this.itemService.getPathList(id)
+  }
+
   @Get('/api/v2/:id/tree')
   @Bind(Param())
   apiGetTree ({ id }) {
