@@ -156,7 +156,6 @@ export class ItemService {
       let topicEn
       let topicDe
       let authorNames
-      const authors = []
 
       let type
 
@@ -165,11 +164,15 @@ export class ItemService {
       const children = []
 
       const joinedMembers = await matrixClient.getJoinedRoomMembers(spaceId).catch((e) => { console.log(spaceId) })
+      const users = _.find(stateEvents, { type: 'm.room.power_levels' })?.content?.users
+      const authors = _.map(joinedMembers?.joined, (member, memberId) => _.some(users, (userData, userId) => userId === memberId && userData >= 50 && memberId !== configService.get('matrix.user_id'))
+        ? {
+            id: memberId,
+            name: joinedMembers?.joined[memberId]?.display_name,
+            avatar: joinedMembers?.joined[memberId]?.avatar_url ? matrixClient.mxcUrlToHttp(joinedMembers?.joined[memberId]?.avatar_url) : ''
+          }
+        : '')
 
-      for (const [key, value] of Object.entries(joinedMembers?.joined)) {
-        members.push({ id: key, name: value.display_name })
-        authors.push({ id: key, name: value.display_name })
-      }
 
       if (metaEvent?.content?.template !== 'lang' && !(configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
         const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
@@ -250,7 +253,6 @@ export class ItemService {
         parent: parent.name,
         parentSpaceId: parent.room_id,
         authors: authors,
-        members: members,
         published: published,
         children: children,
         allocation: { physical: allocationEvent?.content?.physical, temporal: allocationEvent?.content?.temporal },
@@ -615,7 +617,6 @@ export class ItemService {
       parents.push(space?.parentSpaceId)
     }
 
-    console.log(space.children)
 
     return {
       id: id,
@@ -829,6 +830,26 @@ export class ItemService {
     const languages = {}
     if (contentEN) languages.EN = contentEN
     if (contentDE) languages.DE = contentDE
+
+    const matrixClient = createMatrixClient({
+      baseUrl: this.configService.get('matrix.homeserver_base_url'),
+      accessToken: this.configService.get('matrix.access_token'),
+      userId: this.configService.get('matrix.user_id'),
+      useAuthorizationHeader: true
+    })
+
+    const joinedMembers = await matrixClient.getJoinedRoomMembers(id).catch((e) => { console.log(id) })
+    const users = _.find(_.find(this._allRawSpaces, { room_id: id })?.stateEvents, (event) => event.type === 'm.room.power_levels')?.content?.users
+
+    console.log(
+      _.map(joinedMembers?.joined, (member, memberId) => _.some(users, (userData, userId) => userId === memberId && userData >= 50)
+        ? {
+            id: memberId,
+            name: joinedMembers?.joined[memberId]?.display_name,
+            avatar: joinedMembers?.joined[memberId]?.avatar_url ? matrixClient.mxcUrlToHttp(joinedMembers?.joined[memberId]?.avatar_url) : ''
+          }
+        : '')
+    )
 
     return { abstract: { name: abstract?.name, thumbnail: abstract?.thumbnail, thumbnail_full_size: abstract?.thumbnail_full_size, description: abstract?.description }, languages: languages }
   }
