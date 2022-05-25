@@ -156,6 +156,7 @@ export class ItemService {
       let topicEn
       let topicDe
       let authorNames
+      const authors = []
 
       let type
 
@@ -167,6 +168,7 @@ export class ItemService {
 
       for (const [key, value] of Object.entries(joinedMembers?.joined)) {
         members.push({ id: key, name: value.display_name })
+        authors.push({ id: key, name: value.display_name })
       }
 
       if (metaEvent?.content?.template !== 'lang' && !(configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
@@ -247,7 +249,7 @@ export class ItemService {
         topicDe: topicDe,
         parent: parent.name,
         parentSpaceId: parent.room_id,
-        authors: authorNames,
+        authors: authors,
         members: members,
         published: published,
         children: children,
@@ -531,7 +533,7 @@ export class ItemService {
       languageSpaces[languageSpace.name] = languageSpace.room_id
     })
 
-    if (!languageSpaces[language]) return 
+    if (!languageSpaces[language]) return
 
     // Get the actual content block rooms for the given language
     const contentRooms = await matrixClient.getRoomHierarchy(languageSpaces[language], 100, 100)
