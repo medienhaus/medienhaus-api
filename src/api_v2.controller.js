@@ -79,7 +79,7 @@ export class ApiV2Controller {
   @Get('/api/v2/:id/render/json')
   @Bind(Param())
   apiGetRenderedJson ({ id }) {
-    return this.itemService.getContent(id, 'en')
+    return  this.itemService.getRenderedJson(id)
   }
 
   /// Stechlin Custom

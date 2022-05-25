@@ -198,7 +198,7 @@ export class ItemService {
             return _.find(rawSpaces, room => room.room_id === languageSpace)
           })
           if (!languageSpaces) {
-           // console.log('bing')
+            // console.log('bing')
             return
           }
           // fetch descriptions
@@ -506,7 +506,7 @@ export class ItemService {
 
   async getContent (projectSpaceId, language) {
     const contentBlocks = await this.getContentBlocks(projectSpaceId, language)
-
+    if (!contentBlocks) return
     return {
       content: contentBlocks,
       formattedContent: Object.keys(contentBlocks).map(index => contentBlocks[index].formatted_content).join('')
@@ -531,8 +531,11 @@ export class ItemService {
       languageSpaces[languageSpace.name] = languageSpace.room_id
     })
 
+    if (!languageSpaces[language]) return 
+
     // Get the actual content block rooms for the given language
     const contentRooms = await matrixClient.getRoomHierarchy(languageSpaces[language], 100, 100)
+
     // console.log(contentRooms)
     await Promise.all(contentRooms.rooms.map(async (contentRoom) => {
       // Skip the language space itself
@@ -817,6 +820,17 @@ export class ItemService {
     return _.filter(list, item => this.getAbstract(item.id)?.origin?.members.some(usr => usr.id === userId))
   }
 
+  async getRenderedJson (id) {
+    const contentEN = await this.getContent(id, 'en')
+    const contentDE = await this.getContent(id, 'de')
+    const abstract = this.getAbstract(id)
+    const languages = {}
+    if (contentEN) languages.EN = contentEN
+    if (contentDE) languages.DE = contentDE
+
+    return { abstract: { name: abstract?.name, thumbnail: abstract?.thumbnail, thumbnail_full_size: abstract?.thumbnail_full_size, description: abstract?.description }, languages: languages }
+  }
+
   /// //// POST
 
   async postFetch (id, options) {
@@ -832,7 +846,7 @@ export class ItemService {
     if (space) {
       return this._applyUpdate(id, space)
     } else {
-     // console.log('222')
+      // console.log('222')
     }
   }
 
@@ -852,7 +866,7 @@ export class ItemService {
 
     const stateEvents = await matrixClient.roomState(id).catch(() => {})
     const extendedData = await this._getStateData(stateEvents, id, rawSpaces)
-   // console.log(extendedData)
+    // console.log(extendedData)
 
     // console.log(newSpace)
   }
