@@ -19,7 +19,6 @@ export class ItemService {
     this.items = {}
     this.structure = {}
 
-    this.structure = {}
     this.allSpaces = {}
     this._allRawSpaces = {}
   }
@@ -280,24 +279,24 @@ export class ItemService {
     Logger.log(`Found ${Object.keys(this.items).length} items`)
   }
 
-  applyFilterToStructure (structure, filter, ret) {
-    Object.entries(structure).forEach(([key, content]) => {
+  applyFilterToStructure (structure_, filter, ret) {
+    Object.entries(structure_).forEach(([key, content]) => {
       if (filter.some(f => f === content?.template)) {
         Object.entries(content.children).forEach(([key2, content2]) => {
-          structure[key].children[key2] = this.applyFilterToStructure({ [key2]: content2 }, filter)[key2]
+          structure_[key].children[key2] = this.applyFilterToStructure({ [key2]: content2 }, filter)[key2]
         })
       } else {
-        delete structure[key]
+        delete structure_[key]
       }
     })
-    return structure
+    return structure_
   }
 
   getStructure (options) {
+    console.log(this.structure)
     if (options?.filter) {
-      // console.log(options)
-      // return this.applyFilterToStructure(this.structure, options.filter)
-      return JSON.parse(JSON.stringify(this.applyFilterToStructure(this.structure, options.filter))) // apping parsing/stringify to getting rid of weird undefined object
+      const dummyCopy = JSON.parse(JSON.stringify({ [Object.keys(this.structure)[0]]: { ...Object.values(this.structure)[0] } }))
+      return JSON.parse(JSON.stringify(this.applyFilterToStructure(dummyCopy, options.filter))) // apping parsing/stringify to getting rid of weird undefined object
     } else {
       return this.structure
     }
@@ -661,6 +660,7 @@ export class ItemService {
     // return this._findSubTree(this.getStructure({
     //   filter: this.configService.get('attributable.spaceTypes.context')
     // })[this.configService.get('matrix.root_context_space_id')], id)
+
     return this._findSubTree(this.getStructure({
       filter: [...this.configService.get('attributable.spaceTypes.context'), ...this.configService.get('attributable.spaceTypes.item')]
     })[this.configService.get('matrix.root_context_space_id')], id)
@@ -687,7 +687,7 @@ export class ItemService {
     if (tmp) {
       return tmp
     }
-    if (structure.room_id === id) {
+    if (structure.id === id) {
       return structure
     } else {
       _.forEach(structure?.children, child => {
@@ -862,7 +862,6 @@ export class ItemService {
 
   _getPathListFlatter (pathSection, list, parentId) {
     _.forEach(pathSection?.children, (child, childId) => {
-      console.log(child)
       const ele = { ...child }
       delete ele.children
       ele.parent = parentId
