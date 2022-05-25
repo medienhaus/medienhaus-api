@@ -34,6 +34,12 @@ export class ApiV2Controller {
     return this.itemService.getTree(id)
   }
 
+  @Get('/api/v2/:id/tree/filter/type/context')
+  @Bind(Param())
+  apiGetTreeFiltedByContext ({ id }) {
+    return this.itemService.getTreeFiltedByContext(id)
+  }
+
   @Get('/api/v2/:id/list')
   @Bind(Param())
   apiGetList ({ id }) {

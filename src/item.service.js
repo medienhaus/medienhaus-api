@@ -655,8 +655,15 @@ export class ItemService {
   }
 
   getTree (id) {
+    console.log('getStructure')
+    // return this._findSubTree(this.getStructure({
+    //   filter: this.configService.get('attributable.matrix.context')
+    // })[this.configService.get('matrix.root_context_space_id')], id)
+    // return this._findSubTree(this.getStructure({
+    //   filter: this.configService.get('attributable.spaceTypes.context')
+    // })[this.configService.get('matrix.root_context_space_id')], id)
     return this._findSubTree(this.getStructure({
-      filter: this.configService.get('attributable.matrix.context')
+      filter: [...this.configService.get('attributable.spaceTypes.context'), ...this.configService.get('attributable.spaceTypes.item')]
     })[this.configService.get('matrix.root_context_space_id')], id)
   }
 
@@ -838,6 +845,12 @@ export class ItemService {
     })
 
     return { abstract: { name: abstract?.name, thumbnail: abstract?.thumbnail, thumbnail_full_size: abstract?.thumbnail_full_size, description: abstract?.description }, languages: languages }
+  }
+
+  getTreeFiltedByContext (id) {
+    return this._findSubTree(this.getStructure({
+      filter: this.configService.get('attributable.spaceTypes.context')
+    })[this.configService.get('matrix.root_context_space_id')], id)
   }
 
   /// //// POST
