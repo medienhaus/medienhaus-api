@@ -40,16 +40,45 @@ export class ApiV2Controller {
     return this.itemService.getList(id)
   }
 
-  @Get('/api/v2/:id/filter/:filter')
+  // @Get('/api/v2/:id/filter/:filter')
+  // @Bind(Param())
+  // apiGetFiltered ({ id, filter }) {
+  //   return this.itemService.getSpace(id)
+  // }
+
+  // @Get('/api/v2/:id/filter/:filter')
+  // @Bind(Param())
+  // apiGetFiltered ({ id, filter }) {
+  //   return this.itemService.getSpace(id)
+  // }
+
+  // @Get('/api/v2/:id/filter/allocations/physical')
+  // @Bind(Param())
+  // apiGetFiltered ({ id, filter }) {
+  //   return this.itemService.getSpace(id)
+  // }
+
+  @Get('/api/v2/:id/filter/allocation/temporal')
   @Bind(Param())
-  apiGetFiltered ({ id, filter }) {
-    return this.itemService.getSpace(id)
+  apiGetFilteredByAllocationsTemporal ({ id }) {
+    return this.itemService.getItemsFilteredByAllocationsTemporal(id)
+  }
+
+  @Get('/api/v2/:id/filter/user/:userId')
+  @Bind(Param())
+  apiGetFilteredByUserId ({ id, userId }) {
+    return this.itemService.getItemsFilteredByUserId(id, userId)
+  }
+
+  @Get('/api/v2/:id/filter/item')
+  @Bind(Param())
+  apiGetFilteredByItems ({ id }) {
+    return this.itemService.getItemsFilteredByItems(id)
   }
 
   @Get('/api/v2/:id/render/json')
   @Bind(Param())
   apiGetRenderedJson ({ id }) {
-
     return this.itemService.getContent(id, 'en')
   }
 

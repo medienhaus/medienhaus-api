@@ -156,6 +156,7 @@ export class ItemService {
       let topicEn
       let topicDe
       let authorNames
+
       let type
 
       const members = []
@@ -169,23 +170,41 @@ export class ItemService {
       }
 
       if (metaEvent?.content?.template !== 'lang' && !(configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
-        
+        const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
+          const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
+          return r
+        }
+        )
+
+        _.forEach(potentialChildren, child => {
+          if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
+            children.push(child.room_id)
+          //  console.log(child.room_id)
+          }
+        })
+
         if (
           configService.get('attributable.spaceTypes.item').some(f => f === metaEvent?.content?.template) &&
         (metaEvent.content.published ? metaEvent.content.published === 'public' : (joinRulesEvent && joinRulesEvent.content.join_rule === 'public'))
         ) {
-
           published = 'public'
 
           const languageSpaceIds = (stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key))
-
+          if (!languageSpaceIds) {
+            console.log('bing')
+            return
+          }
           const languageSpaces = languageSpaceIds.map(languageSpace => {
             return _.find(rawSpaces, room => room.room_id === languageSpace)
           })
+          if (!languageSpaces) {
+            console.log('bing')
+            return
+          }
           // fetch descriptions
-          const en = languageSpaces.filter(room => room.name === 'en')
+          const en = languageSpaces.filter(room => room?.name === 'en')
           topicEn = en[0].topic || undefined
-          const de = languageSpaces.filter(room => room.name === 'de')
+          const de = languageSpaces.filter(room => room?.name === 'de')
           topicDe = de[0]?.topic || undefined
           // fetch authors aka. collaborators
           authorNames = []
@@ -196,23 +215,19 @@ export class ItemService {
         } else {
           if (!configService.get('attributable.spaceTypes.context').some(f => f === metaEvent?.content?.template)) {
             published = 'draft'
-            console.log('a')
           } else {
-            console.log('b')
-            const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
-              const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
-              return r
-            }
-            )
-            console.log(stateEvents)
+            // const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
+            //   const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
+            //   return r
+            // }
+            // )
 
-            _.forEach(potentialChildren, child => {
-              if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
-                children.push(child.room_id)
-                console.log(child.room_id)
-              }
-            })
-            
+            // _.forEach(potentialChildren, child => {
+            //   if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
+            //     children.push(child.room_id)
+            //   //  console.log(child.room_id)
+            //   }
+            // })
           }
         }
       } else {
@@ -236,7 +251,7 @@ export class ItemService {
         members: members,
         published: published,
         children: children,
-        allocation: { physical: allocationEvent?.content?.physical },
+        allocation: { physical: allocationEvent?.content?.physical, temporal: allocationEvent?.content?.temporal },
         thumbnail: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'scale') : '',
         thumbnail_full_size: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url) : ''
       }
@@ -595,8 +610,7 @@ export class ItemService {
       parents.push(space?.parentSpaceId)
     }
 
-
-    console.log(this.allSpaces[id])
+    console.log(space.children)
 
     return {
       id: id,
@@ -629,7 +643,7 @@ export class ItemService {
     const path = this._findPath(Object.values(this.structure)[0], id, {})
 
     if (path) {
-      const parent = Object.values(this.structure)[0]
+      const parent = { ...Object.values(this.structure)[0] }
       delete parent.children
 
       return { [Object.keys(this.structure)[0]]: { ...parent, children: path } }
@@ -647,7 +661,11 @@ export class ItemService {
   }
 
   _generateList (structure, list) {
-    list.push({ [structure.room_id]: { name: structure.name, room_id: structure.room_id, template: structure.template } })
+    if (structure.type && structure.template && !list.some(f => f.id === structure.id)) {
+      // list.push({ [structure.room_id]: { name: structure.name, room_id: structure.room_id, template: structure.template, type: structure.type } })
+      list.push({ name: structure.name, room_id: structure.room_id, id: structure.room_id, template: structure.template, type: structure.type })
+    }
+
     _.forEach(structure?.children, child => {
       list.concat(this._generateList(child, list))
     })
@@ -686,7 +704,7 @@ export class ItemService {
         const ret = this._findPath(child, id, trace)
         if (ret) {
           if (ret.name) {
-            re = { [child.room_id]: { name: child.name, room_id: child.room_id, type: child?.type, template: child.template }}
+            re = { [child.room_id]: { name: child.name, room_id: child.room_id, type: child?.type, template: child.template } }
           } else {
             re = { [child.room_id]: { name: child.name, room_id: child.room_id, type: child?.type, template: child.template, children: ret } }
           }
@@ -779,6 +797,25 @@ export class ItemService {
     }
 
     return ret
+  }
+
+  /// ////// RUNDGANG 22
+
+  getItemsFilteredByItems (id) {
+    const list = this.getList(id)
+    const items = _.filter(list, item => item.type === 'item')
+
+    return _.filter(items, item => this.configService.get('attributable.spaceTypes.item').some(f => f === item.template))
+  }
+
+  getItemsFilteredByAllocationsTemporal (id) {
+    const list = this.getItemsFilteredByItems(id)
+    return _.filter(list, item => this.getAbstract(item.id)?.allocation?.temporal)
+  }
+
+  getItemsFilteredByUserId (id, userId) {
+    const list = this.getItemsFilteredByItems(id)
+    return _.filter(list, item => this.getAbstract(item.id)?.origin?.members.some(usr => usr.id === userId))
   }
 
   /// //// POST
