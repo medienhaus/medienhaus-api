@@ -173,7 +173,6 @@ export class ItemService {
           }
         : '')
 
-
       if (metaEvent?.content?.template !== 'lang' && !(configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
         const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
           const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
@@ -617,7 +616,6 @@ export class ItemService {
       parents.push(space?.parentSpaceId)
     }
 
-
     return {
       id: id,
       allocation: space?.allocation,
@@ -814,13 +812,14 @@ export class ItemService {
   }
 
   getItemsFilteredByAllocationsTemporal (id) {
-    const list = this.getItemsFilteredByItems(id)
-    return _.filter(list, item => this.getAbstract(item.id)?.allocation?.temporal)
+    const list = [...this.getItemsFilteredByItems(id)]
+    const candidates = _.filter(list, item => this.getAbstract(item.id)?.allocation?.temporal)
+    return _.map(candidates, ele => { ele.allocation = this.getAbstract(ele.id).allocation; return ele })
   }
 
   getItemsFilteredByUserId (id, userId) {
     const list = this.getItemsFilteredByItems(id)
-    return _.filter(list, item => this.getAbstract(item.id)?.origin?.members.some(usr => usr.id === userId))
+    return _.filter(list, item => this.getAbstract(item.id)?.origin?.authors.some(usr => usr.id === userId))
   }
 
   async getRenderedJson (id) {
@@ -837,19 +836,6 @@ export class ItemService {
       userId: this.configService.get('matrix.user_id'),
       useAuthorizationHeader: true
     })
-
-    const joinedMembers = await matrixClient.getJoinedRoomMembers(id).catch((e) => { console.log(id) })
-    const users = _.find(_.find(this._allRawSpaces, { room_id: id })?.stateEvents, (event) => event.type === 'm.room.power_levels')?.content?.users
-
-    console.log(
-      _.map(joinedMembers?.joined, (member, memberId) => _.some(users, (userData, userId) => userId === memberId && userData >= 50)
-        ? {
-            id: memberId,
-            name: joinedMembers?.joined[memberId]?.display_name,
-            avatar: joinedMembers?.joined[memberId]?.avatar_url ? matrixClient.mxcUrlToHttp(joinedMembers?.joined[memberId]?.avatar_url) : ''
-          }
-        : '')
-    )
 
     return { abstract: { name: abstract?.name, thumbnail: abstract?.thumbnail, thumbnail_full_size: abstract?.thumbnail_full_size, description: abstract?.description }, languages: languages }
   }

@@ -70,7 +70,7 @@ export class ApiV2Controller {
     return this.itemService.getItemsFilteredByUserId(id, userId)
   }
 
-  @Get('/api/v2/:id/filter/item')
+  @Get('/api/v2/:id/filter/type/item')
   @Bind(Param())
   apiGetFilteredByItems ({ id }) {
     return this.itemService.getItemsFilteredByItems(id)
