@@ -47,6 +47,7 @@ export default () => ({
         'Universität',
         'Fakultät',
         'Institut',
+        'Fachgebiet',
         'Studiengang',
         'Entwurfsbereich',
         'location-university',
