@@ -697,7 +697,6 @@ export class ItemService {
     let re
 
     if (structure.room_id === id) {
-      console.log('id')
       return { name: structure.name, id: structure.room_id, room_id: structure.room_id, template: structure.template }
     } else {
       _.forEach(structure?.children, child => {
