@@ -293,9 +293,9 @@ export class ItemService {
   }
 
   getStructure (options) {
-    console.log(this.structure)
+    // console.log(this.structure)
     if (options?.filter) {
-      const dummyCopy = JSON.parse(JSON.stringify({ [Object.keys(this.structure)[0]]: { ...Object.values(this.structure)[0] } }))
+      const dummyCopy = JSON.parse(JSON.stringify({ [Object.keys(this.structure)[0]]: { ...Object.values(this.structure)[0] } })) // ugly hack af to get a copy of the object. JS is such garbage.
       return JSON.parse(JSON.stringify(this.applyFilterToStructure(dummyCopy, options.filter))) // apping parsing/stringify to getting rid of weird undefined object
     } else {
       return this.structure
