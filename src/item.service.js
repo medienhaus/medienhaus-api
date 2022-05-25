@@ -655,7 +655,7 @@ export class ItemService {
   }
 
   getTree (id) {
-    console.log('getStructure')
+  
     // return this._findSubTree(this.getStructure({
     //   filter: this.configService.get('attributable.matrix.context')
     // })[this.configService.get('matrix.root_context_space_id')], id)
