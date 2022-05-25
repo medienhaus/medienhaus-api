@@ -191,14 +191,14 @@ export class ItemService {
 
           const languageSpaceIds = (stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key))
           if (!languageSpaceIds) {
-            console.log('bing')
+          //  console.log('bing')
             return
           }
           const languageSpaces = languageSpaceIds.map(languageSpace => {
             return _.find(rawSpaces, room => room.room_id === languageSpace)
           })
           if (!languageSpaces) {
-            console.log('bing')
+           // console.log('bing')
             return
           }
           // fetch descriptions
@@ -832,7 +832,7 @@ export class ItemService {
     if (space) {
       return this._applyUpdate(id, space)
     } else {
-      console.log('222')
+     // console.log('222')
     }
   }
 
@@ -852,7 +852,7 @@ export class ItemService {
 
     const stateEvents = await matrixClient.roomState(id).catch(() => {})
     const extendedData = await this._getStateData(stateEvents, id, rawSpaces)
-    console.log(extendedData)
+   // console.log(extendedData)
 
     // console.log(newSpace)
   }
