@@ -49,6 +49,7 @@ export default () => ({
         'Institut',
         'Fachgebiet',
         'Studiengang',
+        'Beratungsangebot',
         'Entwurfsbereich',
         'location-university',
         'location-building',
