@@ -1,8 +1,6 @@
 name: Deploy to rundgang.udk-berlin.de
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
