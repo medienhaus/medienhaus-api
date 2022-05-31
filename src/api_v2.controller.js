@@ -19,7 +19,9 @@ export class ApiV2Controller {
   @Get('/api/v2/:id')
   @Bind(Param())
   apiV2Get ({ id }) {
-    return this.itemService.getAbstract(id)
+    const ret = this.itemService.getAbstract(id)
+    if (!ret) throw new NotFoundException()
+    return ret
   }
 
   @Get('/api/v2/:id/path')
