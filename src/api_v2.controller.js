@@ -93,7 +93,7 @@ export class ApiV2Controller {
   @Get('/api/v2/:id/render/json')
   @Bind(Param())
   apiGetRenderedJson ({ id }) {
-    return  this.itemService.getRenderedJson(id)
+    return this.itemService.getRenderedJson(id)
   }
 
   /// Stechlin Custom
@@ -104,13 +104,11 @@ export class ApiV2Controller {
     return this.itemService.getFullTree(id)
   }
 
-
-
   // POST ROUTES
 
   @Post('api/v2/:id/fetch')
   @Bind(Body(), Param())
   apiPostFetch (body, params) {
-    return this.itemService.postFetch(params.id, { parentId: body?.parentId })
+    return this.itemService.postFetch(params.id, { parentId: body?.parentId, depth: body?.depth, max: body?.max })
   }
 }

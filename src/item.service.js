@@ -907,18 +907,22 @@ export class ItemService {
     return await this._updatedId(id, options)
   }
 
-  async  _updatedId (id, options) {
+  async _updatedId (id, options) {
     const space = this._findSpace(id)
 
     if (space) {
-      return await this._applyUpdate(id)
+      return await this._applyUpdate(id, options)
     } else {
-      return await this._applyUpdate(options?.parentId)
+      return await this._applyUpdate(options?.parentId, options)
     }
   }
 
-  async _applyUpdate (id) {
-    const allSpaces = await this.getAllSpacesInitial(id, { max: this.configService.get('fetch.max'), depth: this.configService.get('fetch.depth') })
+  async _applyUpdate (id, options) {
+    const max = options.max ? options.max : this.configService.get('fetch.max')
+    const depth = options.depth ? options.depth : this.configService.get('fetch.depth')
+
+
+    const allSpaces = await this.getAllSpacesInitial(id, { max: max, depth: depth })
 
     _.forEach(allSpaces, ele => {
       this._allRawSpaces[ele.room_id] = ele
