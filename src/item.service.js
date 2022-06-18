@@ -691,9 +691,11 @@ export class ItemService {
     //   filter: this.configService.get('attributable.spaceTypes.context')
     // })[this.configService.get('matrix.root_context_space_id')], id)
 
-    return this._findSubTree(this.getStructure({
-      filter: [...this.configService.get('attributable.spaceTypes.context'), ...this.configService.get('attributable.spaceTypes.item')]
-    })[this.configService.get('matrix.root_context_space_id')], id)
+    return this._findSubTree(
+      this.getStructure({
+        filter: [...this.configService.get('attributable.spaceTypes.context'), ...this.configService.get('attributable.spaceTypes.item')]
+      })[this.configService.get('matrix.root_context_space_id')]
+      , id)
   }
 
   getList (id) {
@@ -921,7 +923,6 @@ export class ItemService {
     const max = options.max ? options.max : this.configService.get('fetch.max')
     const depth = options.depth ? options.depth : this.configService.get('fetch.depth')
 
-
     const allSpaces = await this.getAllSpacesInitial(id, { max: max, depth: depth })
 
     _.forEach(allSpaces, ele => {
@@ -940,5 +941,7 @@ export class ItemService {
     filtedObjects.forEach(ele => {
       this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
     })
+
+    return this.itemService.getAbstract(id)
   }
 }

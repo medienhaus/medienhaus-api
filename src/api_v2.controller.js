@@ -108,7 +108,9 @@ export class ApiV2Controller {
 
   @Post('api/v2/:id/fetch')
   @Bind(Body(), Param())
-  apiPostFetch (body, params) {
-    return this.itemService.postFetch(params.id, { parentId: body?.parentId, depth: body?.depth, max: body?.max })
+  async apiPostFetch (body, params) {
+    const ret = await this.itemService.postFetch(params.id, { parentId: body?.parentId, depth: body?.depth, max: body?.max })
+    if (!ret) throw new NotFoundException()
+    return ret
   }
 }
