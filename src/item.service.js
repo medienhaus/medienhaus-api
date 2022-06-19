@@ -114,7 +114,7 @@ export class ItemService {
       if (stateEvents?.some(state => state.type === 'dev.medienhaus.meta')) {
         ret[space?.room_id].stateEvents = stateEvents
       }
-      await new Promise(r => setTimeout(r, 1))
+     // await new Promise(r => setTimeout(r, 1))
       Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
     // }))
     }
@@ -198,7 +198,7 @@ export class ItemService {
     if (!rawSpaces[spaceId].joinedMembers) {
       joinedMembers = await this.matrixClient.getJoinedRoomMembers(spaceId).catch((e) => { console.log(spaceId) })
       rawSpaces[spaceId].joinedMembers = joinedMembers
-      await new Promise(r => setTimeout(r, 10))
+      await new Promise(r => setTimeout(r, 1))
     } else {
       joinedMembers = rawSpaces[spaceId].joinedMembers
     }
@@ -942,6 +942,6 @@ export class ItemService {
       this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
     })
 
-    return this.itemService.getAbstract(id)
+    return this.getAbstract(id)
   }
 }
