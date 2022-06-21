@@ -113,6 +113,14 @@ export class ItemService {
       const stateEvents = await this.matrixClient.roomState(space?.room_id).catch((e) => { console.log(space?.room_id) })
       if (stateEvents?.some(state => state.type === 'dev.medienhaus.meta')) {
         ret[space?.room_id].stateEvents = stateEvents
+
+
+          const tmpEvent = _.find(stateEvents, { type: 'dev.medienhaus.meta' })
+
+          if (tmpEvent.content.published === 'draft') {
+            delete ret[space?.room_id]
+          }
+        
       }
       // await new Promise(r => setTimeout(r, 1))
       Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
@@ -145,6 +153,7 @@ export class ItemService {
     // await Promise.all(_.map(rawSpaces, async (space,i) => {
     for await (const [i, s] of Object.keys(rawSpaces).entries()) {
       const space = rawSpaces[s]
+      if(space) continue
       const extendedRet = await this.getStateData(space.stateEvents, space.room_id, rawSpaces)
       const extendedData = extendedRet?.space
       this._allRawSpaces = extendedRet?.rawSpaces
