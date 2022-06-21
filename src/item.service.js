@@ -45,6 +45,7 @@ export class ItemService {
     const allSpaces = await this.getAllSpacesInitial(this.configService.get('matrix.root_context_space_id'), { max: this.configService.get('fetch.max'), depth: this.configService.get('fetch.depth') })
 
     this._allRawSpaces = allSpaces
+
     Logger.log(`Found ${Object.keys(allSpaces).length} spaces`)
     const generatedStrucute = this.generateStructure(allSpaces, this.configService.get('matrix.root_context_space_id'), {})
     const structure = {}
@@ -83,7 +84,6 @@ export class ItemService {
 
   async getAllSpacesInitial (spaceId, options) {
     //  let hierarchy = {}
-    console.log('bing')
 
     // const hierarchy = await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth)
 
@@ -114,7 +114,7 @@ export class ItemService {
       if (stateEvents?.some(state => state.type === 'dev.medienhaus.meta')) {
         ret[space?.room_id].stateEvents = stateEvents
       }
-     // await new Promise(r => setTimeout(r, 1))
+      // await new Promise(r => setTimeout(r, 1))
       Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
     // }))
     }
@@ -149,7 +149,13 @@ export class ItemService {
       const extendedData = extendedRet?.space
       this._allRawSpaces = extendedRet?.rawSpaces
       if (extendedData) {
-        ret[space.room_id] = { id: space.room_id, ...extendedData }
+        if (extendedData.type === 'item') {
+          if (extendedData.published === 'public') {
+            ret[space.room_id] = { id: space.room_id, ...extendedData }
+          }
+        } else {
+          ret[space.room_id] = { id: space.room_id, ...extendedData }
+        }
       }
 
       Logger.log('get members:\t' + i + '/' + Object.keys(rawSpaces).length)
