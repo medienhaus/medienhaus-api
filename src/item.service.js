@@ -114,13 +114,11 @@ export class ItemService {
       if (stateEvents?.some(state => state.type === 'dev.medienhaus.meta')) {
         ret[space?.room_id].stateEvents = stateEvents
 
+        const tmpEvent = _.find(stateEvents, { type: 'dev.medienhaus.meta' })
 
-          const tmpEvent = _.find(stateEvents, { type: 'dev.medienhaus.meta' })
-
-          if (tmpEvent.content.published === 'draft') {
-            delete ret[space?.room_id]
-          }
-        
+        if (tmpEvent.content.published === 'draft') {
+          delete ret[space?.room_id]
+        }
       }
       // await new Promise(r => setTimeout(r, 1))
       Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
@@ -153,7 +151,7 @@ export class ItemService {
     // await Promise.all(_.map(rawSpaces, async (space,i) => {
     for await (const [i, s] of Object.keys(rawSpaces).entries()) {
       const space = rawSpaces[s]
-  
+
       const extendedRet = await this.getStateData(space.stateEvents, space.room_id, rawSpaces)
       const extendedData = extendedRet?.space
       this._allRawSpaces = extendedRet?.rawSpaces
@@ -191,9 +189,11 @@ export class ItemService {
 
       _.forEach(children, child => {
         if (child?.state_key === spaceId) {
-          parents.push({ name: space.name, room_id: space.room_id })
-          parent.name = space.name
-          parent.room_id = space.room_id
+          if (Object.keys(child?.content).length !== 0) {
+            parents.push({ name: space.name, room_id: space.room_id })
+            parent.name = space.name
+            parent.room_id = space.room_id
+          }
         }
       })
     })
@@ -919,6 +919,10 @@ export class ItemService {
 
   async postFetch (id, options) {
     return await this._updatedId(id, options)
+  }
+
+  async deleteFetch (id) {
+
   }
 
   async _updatedId (id, options) {

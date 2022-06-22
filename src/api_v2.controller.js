@@ -1,4 +1,4 @@
-import { Bind, Controller, Dependencies, Get, Post, Body, Req, Param, NotFoundException, HttpException, HttpStatus } from '@nestjs/common'
+import { Bind, Controller, Dependencies, Get, Post, Delete, Body, Req, Param, NotFoundException, HttpException, HttpStatus } from '@nestjs/common'
 import { AppService } from './app.service'
 
 import _ from 'lodash'
@@ -110,6 +110,14 @@ export class ApiV2Controller {
   @Bind(Body(), Param())
   async apiPostFetch (body, params) {
     const ret = await this.itemService.postFetch(params.id, { parentId: body?.parentId, depth: body?.depth, max: body?.max })
+    if (!ret) throw new NotFoundException()
+    return ret
+  }
+
+  @Delete('api/v2/:id/fetch')
+  @Bind(Body(), Param())
+  async apiDeleteFetch (body, params) {
+    const ret = await this.itemService.deleteFetch(params.id, { parentId: body?.parentId })
     if (!ret) throw new NotFoundException()
     return ret
   }
