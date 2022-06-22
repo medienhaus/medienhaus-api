@@ -153,7 +153,7 @@ export class ItemService {
     // await Promise.all(_.map(rawSpaces, async (space,i) => {
     for await (const [i, s] of Object.keys(rawSpaces).entries()) {
       const space = rawSpaces[s]
-      if(space) continue
+  
       const extendedRet = await this.getStateData(space.stateEvents, space.room_id, rawSpaces)
       const extendedData = extendedRet?.space
       this._allRawSpaces = extendedRet?.rawSpaces
@@ -237,7 +237,6 @@ export class ItemService {
       _.forEach(potentialChildren, child => {
         if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
           children.push(child.room_id)
-        //  console.log(child.room_id)
         }
       })
 
@@ -249,19 +248,17 @@ export class ItemService {
 
         const languageSpaceIds = (stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key))
         if (!languageSpaceIds) {
-        //  console.log('bing')
           return
         }
         const languageSpaces = languageSpaceIds.map(languageSpace => {
           return _.find(rawSpaces, room => room.room_id === languageSpace)
         })
         if (!languageSpaces) {
-          // console.log('bing')
           return
         }
         // fetch descriptions
         const en = languageSpaces.filter(room => room?.name === 'en')
-        topicEn = en[0].topic || undefined
+        topicEn = en[0]?.topic || undefined
         const de = languageSpaces.filter(room => room?.name === 'de')
         topicDe = de[0]?.topic || undefined
         // fetch authors aka. collaborators
