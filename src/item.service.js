@@ -114,11 +114,10 @@ export class ItemService {
       if (stateEvents?.some(state => state.type === 'dev.medienhaus.meta')) {
         ret[space?.room_id].stateEvents = stateEvents
 
-        const tmpEvent = _.find(stateEvents, { type: 'dev.medienhaus.meta' })
-
-        if (tmpEvent.content.published === 'draft') {
-          delete ret[space?.room_id]
-        }
+        // const tmpEvent = _.find(stateEvents, { type: 'dev.medienhaus.meta' })
+        // if (tmpEvent.content.published === 'draft') {
+        //   delete ret[space?.room_id]
+        // }
       }
       // await new Promise(r => setTimeout(r, 1))
       Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
@@ -141,6 +140,7 @@ export class ItemService {
       })
       const metaEvent = _.find(space.stateEvents, { type: 'dev.medienhaus.meta' })
       // if (filter.some(f => f === metaEvent?.content?.type)) { return { name: space.name, room_id: space.room_id, type: metaEvent?.content?.type, children: children } }
+      if (metaEvent?.content?.published === 'draft') { return }
       return { name: space.name, room_id: space.room_id, id: space.room_id, type: metaEvent?.content?.type, template: metaEvent?.content?.template, children: children }
     }
   }
@@ -157,9 +157,9 @@ export class ItemService {
       this._allRawSpaces = extendedRet?.rawSpaces
       if (extendedData) {
         if (extendedData.type === 'item') {
-          if (extendedData.published === 'public') {
-            ret[space.room_id] = { id: space.room_id, ...extendedData }
-          }
+          // if (extendedData.published === 'public') {
+          ret[space.room_id] = { id: space.room_id, ...extendedData }
+        //  }
         } else {
           ret[space.room_id] = { id: space.room_id, ...extendedData }
         }
@@ -665,6 +665,7 @@ export class ItemService {
       template: space?.template,
       thumbnail: space?.thumbnail,
       thumbnail_full_size: space?.thumbnail_full_size,
+      published: space?.published,
       origin: {
         applications: [],
         server: [space.id.split(':')[1]],
@@ -814,7 +815,9 @@ export class ItemService {
     _.forEach(types, (type, key) => {
       ret[key] = []
       _.forEach(type, typeElement => {
-        ret[key].push(this._abstractSpace(typeElement))
+        if (typeElement?.published === 'draft') {} else { // checking if should not be exposed since it is still a draft
+          ret[key].push(this._abstractSpace(typeElement))
+        }
       })
     })
     return ret
