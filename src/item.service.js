@@ -237,7 +237,11 @@ export class ItemService {
     }
 
     const users = _.find(stateEvents, { type: 'm.room.power_levels' })?.content?.users
-    const authors = _.map(joinedMembers?.joined, (member, memberId) => _.some(users, (userData, userId) => userId === memberId && userData >= 50 && memberId !== this.configService.get('matrix.user_id'))
+
+
+    
+
+    let authors = _.map(joinedMembers?.joined, (member, memberId) => _.some(users, (userData, userId) => userId === memberId && userData >= 50 && memberId !== this.configService.get('matrix.user_id'))
       ? {
           id: memberId,
           name: joinedMembers?.joined[memberId]?.display_name,
@@ -250,6 +254,9 @@ export class ItemService {
         authors.push({ name: credit })
       })
     }
+
+    const udkEvent = _.find(stateEvents, { type: 'de.udk-berlin.rundgang' })?.content?.hideAuthors
+    if (udkEvent) authors = []
 
     if (metaEvent?.content?.template !== 'lang' && !(this.configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
       const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
