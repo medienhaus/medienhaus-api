@@ -8,7 +8,7 @@ import Handlebars from 'handlebars'
 import fs from 'fs'
 import { join } from 'path'
 import moment from 'moment'
-import { template } from 'lodash'
+import { now, template } from 'lodash'
 
 @Injectable()
 @Dependencies(ConfigService, HttpService)
@@ -68,7 +68,7 @@ export class ItemService {
 
   async getBatch (spaceId, options, batch, hirachy) {
     this.batchCounter++
-    Logger.log('batch:\t' + this.batchCounter)
+    if (!options?.noLog) Logger.log('batch:\t' + this.batchCounter)
     // console.log(await matrixClient.getRoomHierarchy("!YCztLjuiNnMHWFPUVP:stechlin-institut.ruralmindshift.org", options.max, options.depth))
     const hierarchyBatch = batch ? await this.matrixClient.getRoomHierarchy(spaceId, options.max, options.depth, false, batch) : await this.matrixClient.getRoomHierarchy(spaceId, options.max, options.depth)
     //! hierarchyBatch.next_batch ? hirachy :
@@ -106,10 +106,11 @@ export class ItemService {
     hierarchy?.rooms.forEach(space => {
       ret[space.room_id] = space
     })
-    Logger.log(Object.keys(ret).length)
+    if (!options?.noLog) Logger.log(Object.keys(ret).length)
+
     for await (const [i, space] of hierarchy?.rooms.entries()) {
       // await Promise.all(hierarchy?.rooms.map(async (space) => {
-
+    //  const startTime = Date.now()
       const stateEvents = await this.matrixClient.roomState(space?.room_id).catch((e) => { console.log(space?.room_id) })
       if (stateEvents?.some(state => state.type === 'dev.medienhaus.meta')) {
         ret[space?.room_id].stateEvents = stateEvents
@@ -120,7 +121,8 @@ export class ItemService {
         // }
       }
       // await new Promise(r => setTimeout(r, 1))
-      Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
+      // console.log(Date.now() - startTime)
+      if (!options?.noLog) Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
     // }))
     }
     return ret
@@ -145,14 +147,14 @@ export class ItemService {
     }
   }
 
-  async generateAllSpaces (rawSpaces) {
+  async generateAllSpaces (rawSpaces, options, idsToApplyFullStaeUpdate) {
     const ret = {}
 
     // await Promise.all(_.map(rawSpaces, async (space,i) => {
     for await (const [i, s] of Object.keys(rawSpaces).entries()) {
       const space = rawSpaces[s]
 
-      const extendedRet = await this.getStateData(space.stateEvents, space.room_id, rawSpaces)
+      const extendedRet = await this.getStateData(space.stateEvents, space.room_id, rawSpaces, idsToApplyFullStaeUpdate)
       const extendedData = extendedRet?.space
       this._allRawSpaces = extendedRet?.rawSpaces
       if (extendedData) {
@@ -165,14 +167,14 @@ export class ItemService {
         }
       }
 
-      Logger.log('get members:\t' + i + '/' + Object.keys(rawSpaces).length)
+      if (!options?.noLog) Logger.log('get members:\t' + i + '/' + Object.keys(rawSpaces).length)
       //  }))
     }
 
     return ret
   }
 
-  async getStateData (stateEvents, spaceId, rawSpaces) {
+  async getStateData (stateEvents, spaceId, rawSpaces, idsToApplyFullStaeUpdate) {
     const metaEvent = _.find(stateEvents, { type: 'dev.medienhaus.meta' })
     //   if (!metaEvent) console.log(spaceId)
     if (!metaEvent) return
@@ -181,22 +183,38 @@ export class ItemService {
     const allocationEvent = _.find(stateEvents, { type: 'dev.medienhaus.allocation' })
     const joinRulesEvent = _.find(stateEvents, { type: 'm.room.join_rules' })
 
-    const parent = {}
-    const parents = []
+    let parents = []
+    if (idsToApplyFullStaeUpdate) { // only for fetch to not go through all the arrays over and over again
+      if (idsToApplyFullStaeUpdate.includes(spaceId)) {
+        _.forEach(rawSpaces, space => {
+          const children = (_.filter(space.stateEvents, event => event.type === 'm.space.child'))
 
-    _.forEach(rawSpaces, space => {
-      const children = (_.filter(space.stateEvents, event => event.type === 'm.space.child'))
+          _.forEach(children, child => {
+            if (child?.state_key === spaceId) {
+              if (Object.keys(child?.content).length !== 0) {
+                parents.push({ name: space.name, room_id: space.room_id })
+              }
+            }
+          })
+        })
+        rawSpaces[spaceId].parentIds = parents
+      } else {
+        parents = rawSpaces[spaceId].parentIds
+      }
+    } else {
+      _.forEach(rawSpaces, space => {
+        const children = (_.filter(space.stateEvents, event => event.type === 'm.space.child'))
 
-      _.forEach(children, child => {
-        if (child?.state_key === spaceId) {
-          if (Object.keys(child?.content).length !== 0) {
-            parents.push({ name: space.name, room_id: space.room_id })
-            parent.name = space.name
-            parent.room_id = space.room_id
+        _.forEach(children, child => {
+          if (child?.state_key === spaceId) {
+            if (Object.keys(child?.content).length !== 0) {
+              parents.push({ name: space.name, room_id: space.room_id })
+            }
           }
-        }
+        })
       })
-    })
+      rawSpaces[spaceId].parentIds = parents
+    }
 
     let published
     let topicEn
@@ -226,6 +244,12 @@ export class ItemService {
           avatar: joinedMembers?.joined[memberId]?.avatar_url ? this.matrixClient.mxcUrlToHttp(joinedMembers?.joined[memberId]?.avatar_url) : ''
         }
       : '')
+
+    if (metaEvent?.content?.credit) {
+      metaEvent?.content?.credit.forEach(credit => {
+        authors.push({ name: credit })
+      })
+    }
 
     if (metaEvent?.content?.template !== 'lang' && !(this.configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
       const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
@@ -294,6 +318,8 @@ export class ItemService {
     const avatar = _.find(stateEvents, { type: 'm.room.avatar' })
 
     if (metaEvent?.content?.deleted) return
+    // console.log(Date.now() - startTime)
+
     return {
       space: {
         name: spaceName,
@@ -301,8 +327,6 @@ export class ItemService {
         topicEn: topicEn,
         type: metaEvent?.content?.type,
         topicDe: topicDe,
-        parent: parent.name,
-        parentSpaceId: parent.room_id,
         parents: parents,
         authors: authors,
         published: published,
@@ -939,20 +963,31 @@ export class ItemService {
   }
 
   async _applyUpdate (id, options) {
+    const startTime = Date.now()
     const max = options.max ? options.max : this.configService.get('fetch.max')
     const depth = options.depth ? options.depth : this.configService.get('fetch.depth')
 
-    const allSpaces = await this.getAllSpacesInitial(id, { max: max, depth: depth })
+    const idsToApplyFullStaeUpdate = []
 
+    const allSpaces = await this.getAllSpacesInitial(id, { max: max, depth: depth, noLog: true })
+    _.forEach(allSpaces, (spaceContent, spaceId) => {
+      idsToApplyFullStaeUpdate.push(spaceId)
+      const abstract = this.getAbstract(spaceId)
+      if (abstract?.parents) idsToApplyFullStaeUpdate.concat(abstract?.parents)
+    })
+    console.log(idsToApplyFullStaeUpdate)
+
+    console.log('Fetched ' + (Date.now() - startTime))
     _.forEach(allSpaces, ele => {
       this._allRawSpaces[ele.room_id] = ele
     })
+    console.log('Fetched after ' + (Date.now() - startTime))
     const generatedStrucute = this.generateStructure(this._allRawSpaces, this.configService.get('matrix.root_context_space_id'), {})
     const structure = {}
     structure[generatedStrucute.room_id] = generatedStrucute
-
-    this.allSpaces = await this.generateAllSpaces(this._allRawSpaces)
-
+    console.log('Struct ' + (Date.now() - startTime))
+    this.allSpaces = await this.generateAllSpaces(this._allRawSpaces, { noLog: true }, idsToApplyFullStaeUpdate)
+    console.log('Spaces generated ' + (Date.now() - startTime))
     this.structure = structure
 
     const filtedObjects = _.filter(this.allSpaces, space => space.type === 'item').map(space => { return { [space.id]: space } })
@@ -960,7 +995,7 @@ export class ItemService {
     filtedObjects.forEach(ele => {
       this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
     })
-
+    console.log('End ' + (Date.now() - startTime))
     return this.getAbstract(id)
   }
 }
