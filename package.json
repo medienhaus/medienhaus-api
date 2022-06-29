@@ -31,7 +31,6 @@
     "@babel/preset-env": "^7.15.8",
     "@babel/register": "^7.8.6",
     "@babel/runtime": "^7.8.7",
-    "@nestjs/testing": "^7.0.1",
     "eslint-config-react-app": "^6.0.0",
     "eslint-config-standard": "^16.0.2",
     "nodemon": "^2.0.2",
