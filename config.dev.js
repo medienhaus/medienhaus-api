@@ -3,8 +3,8 @@ export default () => ({
   matrix: {
     homeserver_base_url: 'https://dev.medienhaus.udk-berlin.de',
     user_id: '@rundgang22-dummy-4:dev.medienhaus.udk-berlin.de',
-    access_token: 'syt_cnVuZGdhbmcyMi1kdW1teS00_vlELIPvnvzgxovZfxcqH_210yhO',
-    root_context_space_id: '!yGwpTLQiIMoyuhGggS:dev.medienhaus.udk-berlin.de'
+   access_token: 'syt_cnVuZGdhbmcyMi1kdW1teS00_gotxYZmAYzwVQJorGHXk_47ZLq6',
+    root_context_space_id: '!ZHxOBBJSDIRTvbpMRw:dev.medienhaus.udk-berlin.de'
   },
   fetch: {
     depth: 500,
@@ -37,24 +37,35 @@ export default () => ({
         'event'
       ],
       context: [
-        'context',
+'context',
         'class',
+        'faculty',
+        'centre',
+        'consulting service',
+        'initiative',
+        'institute',
+        'subject',
         'course',
+        'seminar',
         'institution',
         'structure',
         'structure-element',
         'structure-root',
         'Universität',
-        'Fakultät',
-        'Institut',
         'Fachgebiet',
+        'Fakultät',
+        'Seminar',
+        'Fachklasse',
+        'Kurs',
+        'Institut',
         'Studiengang',
         'Beratungsangebot',
         'Entwurfsbereich',
         'location-university',
         'location-building',
         'location-level',
-        'location-room'
+        'location-room',
+        'location-external'
       ],
       content: [
         'lang',
