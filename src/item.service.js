@@ -961,8 +961,7 @@ export class ItemService {
 
   async _updatedId (id, options) {
     const space = this._findSpace(id)
-
-    if (space) {
+    if (space && !options.parentId) {
       return await this._applyUpdate(id, options)
     } else {
       return await this._applyUpdate(options?.parentId, options)
