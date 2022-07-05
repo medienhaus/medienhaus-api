@@ -967,14 +967,19 @@ export class ItemService {
   }
 
   async deleteFetch (id) {
-    const spaceAbstract = JSON.parse(JSON.stringify(this.getAbstract(id)))
-    const spaceRaw = JSON.parse(JSON.stringify(this._allRawSpaces[id]))
-    const spaceItems = JSON.parse(JSON.stringify(this.items[id]))
-    const spaceAllSpaces = JSON.parse(JSON.stringify(this.allSpaces[id]))
+    const spaceAbstract = this.getAbstract(id)
+    const spaceRaw = this._allRawSpaces[id]
+    const spaceItems = this.items[id]
+    const spaceAllSpaces = this.allSpaces[id]
 
     if (!spaceRaw || !spaceAbstract || !spaceAllSpaces) {
       return
     }
+
+    // let spaceAbstract = JSON.parse(JSON.stringify(this.getAbstract(id)))
+    // let spaceRaw = JSON.parse(JSON.stringify(this._allRawSpaces[id]))
+    // let spaceItems = JSON.parse(JSON.stringify(this.items[id]))
+    // let spaceAllSpaces = JSON.parse(JSON.stringify(this.allSpaces[id]))
 
     // adding auth function
 
