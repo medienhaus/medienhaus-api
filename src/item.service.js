@@ -149,14 +149,17 @@ export class ItemService {
 
   async generateAllSpaces (rawSpaces, options, idsToApplyFullStaeUpdate) {
     const ret = {}
-
     // await Promise.all(_.map(rawSpaces, async (space,i) => {
     for await (const [i, s] of Object.keys(rawSpaces).entries()) {
       const space = rawSpaces[s]
 
       const extendedRet = await this.getStateData(space.stateEvents, space.room_id, rawSpaces, idsToApplyFullStaeUpdate)
       const extendedData = extendedRet?.space
-      this._allRawSpaces = extendedRet?.rawSpaces
+
+      if (extendedRet?.rawSpaces) {
+        this._allRawSpaces = extendedRet?.rawSpaces
+      }
+
       if (extendedData) {
         if (extendedData.type === 'item') {
           // if (extendedData.published === 'public') {
@@ -246,7 +249,7 @@ export class ItemService {
         }
       : '')
 
-    authors = authors.filter(author => author !== '') //filter out empty ones, not as nice as it should be but a functioning woraround. will be written in clean code in rewrite
+    authors = authors.filter(author => author !== '') // filter out empty ones, not as nice as it should be but a functioning woraround. will be written in clean code in rewrite
 
     if (metaEvent?.content?.credit) {
       metaEvent?.content?.credit.forEach(credit => {
@@ -949,6 +952,14 @@ export class ItemService {
     return list
   }
 
+  _getParentsOfId (id) {
+    const idSpace = this.allSpaces[id]
+
+    if (!idSpace || !idSpace?.parents || !idSpace?.parents.length > 0) return
+
+    return idSpace?.parents.map(parent => parent.room_id)
+  }
+
   /// //// POST
 
   async postFetch (id, options) {
@@ -956,7 +967,84 @@ export class ItemService {
   }
 
   async deleteFetch (id) {
+    const spaceAbstract = JSON.parse(JSON.stringify(this.getAbstract(id)))
+    const spaceRaw = JSON.parse(JSON.stringify(this._allRawSpaces[id]))
+    const spaceItems = JSON.parse(JSON.stringify(this.items[id]))
+    const spaceAllSpaces = JSON.parse(JSON.stringify(this.allSpaces[id]))
 
+    if (!spaceRaw || !spaceAbstract || !spaceAllSpaces) {
+      return
+    }
+
+    // adding auth function
+
+    // modify parents
+
+    const parents = this._getParentsOfId(id)
+    // and stateEvents of parents
+    parents.forEach(parent => {
+      //   stateEvents of parents of RawSpaces
+      if (this._allRawSpaces[parent]) {
+        this._allRawSpaces[parent]?.stateEvents.forEach((stateEvent, i) => {
+          if (stateEvent.state_key === id) {
+            this._allRawSpaces[parent].stateEvents.splice(i, 1)
+          }
+        })
+        //  modify children_state of RawSpaces
+        this._allRawSpaces[parent]?.children_state.forEach((childStateEvent, i) => {
+          if (childStateEvent.state_key === id) {
+            this._allRawSpaces[parent].children_state.splice(i, 1)
+          }
+        })
+      }
+
+      // modify children key of AllSpaces
+      if (this.allSpaces[parent]) {
+        this.allSpaces[parent]?.children.forEach((child, i) => {
+          if (child === id) {
+            this.allSpaces[parent]?.children.splice(i, 1)
+          }
+        })
+      }
+
+      // modify childre key of items
+      if (this.items[parent]) {
+        this.items[parent]?.children.forEach((child, i) => {
+          if (child === id) {
+            this.items[parent]?.children.splice(i, 1)
+          }
+        })
+      }
+    })
+
+    // modify children
+    // -> can be skipped since no entry point to deliver the children of the given id anymore
+
+    // modify tree
+    this._findAndDeleatInStrucutre(id, Object.values(this.structure)[0], [Object.keys(this.structure)[0]])
+
+    // delte objects
+    if (this._allRawSpaces[id]) delete this._allRawSpaces[id]
+    if (this.items[id]) delete this.items[id]
+    if (this.allSpaces[id]) delete this.allSpaces[id]
+
+    return { status: 'deleted' }
+  }
+
+  _findAndDeleatInStrucutre (id, structure, path) {
+    _.forEach(structure?.children, child => {
+      const tmpPath = [...path]
+      tmpPath.push(child.id)
+      this._findAndDeleatInStrucutre(id, child, tmpPath)
+    })
+
+    if (structure.id === id) {
+      let pathWay = ''
+      path.forEach((p, i) => {
+        pathWay += "['" + p + "']" + (i < path.length - 1 ? '.children' : '') // yes I know this is fucking ugly as hell I am also hating myself for this at least a bit
+      })
+      _.unset(this.structure, pathWay) // this deletes the key
+    }
   }
 
   async _updatedId (id, options) {
