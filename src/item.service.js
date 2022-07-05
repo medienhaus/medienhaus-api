@@ -966,7 +966,7 @@ export class ItemService {
     return await this._updatedId(id, options)
   }
 
-  async deleteFetch (id) {
+  async deleteFetch (id, options) {
     const spaceAbstract = this.getAbstract(id)
     const spaceRaw = this._allRawSpaces[id]
     const spaceItems = this.items[id]
@@ -976,15 +976,19 @@ export class ItemService {
       return
     }
 
-    // let spaceAbstract = JSON.parse(JSON.stringify(this.getAbstract(id)))
-    // let spaceRaw = JSON.parse(JSON.stringify(this._allRawSpaces[id]))
-    // let spaceItems = JSON.parse(JSON.stringify(this.items[id]))
-    // let spaceAllSpaces = JSON.parse(JSON.stringify(this.allSpaces[id]))
+    // TODO: adding auth function
 
-    // adding auth function
+    // checking if space is already removed at parents via synapse
+    const liveParents = await this._getChildrenOfParents(options?.parentIds)
+
+    const deleted = _.map(liveParents, parent => {
+      return parent.some(room => room === id)
+    })
+    if (deleted.some(p => p)) {
+      return { status: 'not in matrix deleted' }
+    }
 
     // modify parents
-
     const parents = this._getParentsOfId(id)
     // and stateEvents of parents
     parents.forEach(parent => {
@@ -1034,6 +1038,16 @@ export class ItemService {
     if (this.allSpaces[id]) delete this.allSpaces[id]
 
     return { status: 'deleted' }
+  }
+
+  async _getChildrenOfParents (parentIds) {
+    const parents = {}
+    for await (const [i, parent] of parentIds.entries()) {
+      const matrixReq = await this.matrixClient.getRoomHierarchy(parent, this.configService.get('fetch.max'), 1)
+      const children = _.map(_.filter(matrixReq?.rooms, room => parent !== room.room_id), room => room.room_id)
+      parents[parent] = children
+    }
+    return parents
   }
 
   _findAndDeleatInStrucutre (id, structure, path) {
