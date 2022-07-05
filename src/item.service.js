@@ -638,8 +638,9 @@ export class ItemService {
       })()
       const formattedContent = (() => {
         switch (type) {
-          // For text, ul and ol we just return whatever's stored in the Matrix event's formatted_body
+          // For text, headings, ul and ol we just return whatever's stored in the Matrix event's formatted_body
           case 'text':
+          case 'heading':
           case 'ul':
           case 'ol':
             return lastMessage.content.formatted_body
