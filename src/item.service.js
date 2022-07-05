@@ -857,6 +857,7 @@ export class ItemService {
   _abstractSpace (space) {
     return {
       id: space.id,
+      room_id: space.id,
       name: space?.name,
       template: space?.template,
       type: space?.type
