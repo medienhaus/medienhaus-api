@@ -238,9 +238,6 @@ export class ItemService {
 
     const users = _.find(stateEvents, { type: 'm.room.power_levels' })?.content?.users
 
-
-    
-
     let authors = _.map(joinedMembers?.joined, (member, memberId) => _.some(users, (userData, userId) => userId === memberId && userData >= 50 && memberId !== this.configService.get('matrix.user_id'))
       ? {
           id: memberId,
@@ -248,6 +245,8 @@ export class ItemService {
           avatar: joinedMembers?.joined[memberId]?.avatar_url ? this.matrixClient.mxcUrlToHttp(joinedMembers?.joined[memberId]?.avatar_url) : ''
         }
       : '')
+
+    authors = authors.filter(author => author !== '') //filter out empty ones, not as nice as it should be but a functioning woraround. will be written in clean code in rewrite
 
     if (metaEvent?.content?.credit) {
       metaEvent?.content?.credit.forEach(credit => {
@@ -704,7 +703,7 @@ export class ItemService {
         members: space.members
       },
       description: {
-        default: _.find(rawSpace.stateEvents, (event) => event.type === 'm.room.topic')?.content?.topic,
+        default: _.find(rawSpace?.stateEvents, (event) => event.type === 'm.room.topic')?.content?.topic,
         EN: space?.topicEn,
         DE: space?.topicDe
       },
