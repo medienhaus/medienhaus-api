@@ -981,6 +981,7 @@ export class ItemService {
     // checking if space is already removed at parents via synapse
     const liveParents = await this._getChildrenOfParents(options?.parentIds)
     if (!liveParents) return { status: 'matrix parent not found' }
+    if (liveParents?.error) return { status: '' + liveParents.error + ' not found in matrix' } //  custom error response for specific room id
     const deleted = _.map(liveParents, parent => {
       return parent.some(room => room === id)
     })
@@ -1039,11 +1040,23 @@ export class ItemService {
     this._findAndDeleatInStrucutre(id, Object.values(this.structure)[0], [Object.keys(this.structure)[0]], options)
 
     if (options?.purge) {
-      // delte objects
+      // purge objects of given id
       if (this._allRawSpaces[id]) delete this._allRawSpaces[id]
       if (this.items[id]) delete this.items[id]
       if (this.allSpaces[id]) delete this.allSpaces[id]
       return { status: 'purged' }
+    } else { // if not purged then modifing the parentes keys of the given id object which it got deleted from
+      if (this._allRawSpaces[id]) {
+        _.remove(this._allRawSpaces[id]?.parents, p => options?.parentIds.some(pI => p.room_id === pI))
+      }
+
+      if (this.allSpaces[id]) {
+        _.remove(this.allSpaces[id]?.parents, p => options?.parentIds.some(pI => p.room_id === pI))
+      }
+
+      if (this.items[id]) {
+        _.remove(this.items[id]?.parents, p => options?.parentIds.some(pI => p.room_id === pI))
+      }
     }
 
     return { status: 'deleted' }
@@ -1053,7 +1066,7 @@ export class ItemService {
     const parents = {}
     for await (const [i, parent] of parentIds.entries()) {
       const matrixReq = await this.matrixClient.getRoomHierarchy(parent, this.configService.get('fetch.max'), 1).catch(e => {})
-      if (!matrixReq) return
+      if (!matrixReq) return { error: parent }
       const children = _.map(_.filter(matrixReq?.rooms, room => parent !== room.room_id), room => room.room_id)
       parents[parent] = children
     }
