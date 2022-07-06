@@ -117,7 +117,7 @@ export class ApiV2Controller {
   @Delete('api/v2/:id/fetch')
   @Bind(Body(), Param())
   async apiDeleteFetch (body, params) {
-    const ret = await this.itemService.deleteFetch(params.id, { parentIds: body?.parentIds })
+    const ret = await this.itemService.deleteFetch(params.id, { parentIds: body?.parentIds, purge: body?.purge })
     if (!ret) throw new NotFoundException()
     return ret
   }

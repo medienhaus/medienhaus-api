@@ -980,7 +980,7 @@ export class ItemService {
 
     // checking if space is already removed at parents via synapse
     const liveParents = await this._getChildrenOfParents(options?.parentIds)
-
+    if (!liveParents) return { status: 'matrix parent not found' }
     const deleted = _.map(liveParents, parent => {
       return parent.some(room => room === id)
     })
@@ -992,6 +992,12 @@ export class ItemService {
     const parents = this._getParentsOfId(id)
     // and stateEvents of parents
     parents.forEach(parent => {
+      // check if purge from all parent or just specific ones
+      if (!options?.purge) {
+        if (!options?.parentIds.some(p => p === parent)) { // if parent is not included in parentIds from the call then this will not be deleted
+          return
+        }
+      }
       //   stateEvents of parents of RawSpaces
       if (this._allRawSpaces[parent]) {
         this._allRawSpaces[parent]?.stateEvents.forEach((stateEvent, i) => {
@@ -1030,12 +1036,15 @@ export class ItemService {
     // -> can be skipped since no entry point to deliver the children of the given id anymore
 
     // modify tree
-    this._findAndDeleatInStrucutre(id, Object.values(this.structure)[0], [Object.keys(this.structure)[0]])
+    this._findAndDeleatInStrucutre(id, Object.values(this.structure)[0], [Object.keys(this.structure)[0]], options)
 
-    // delte objects
-    if (this._allRawSpaces[id]) delete this._allRawSpaces[id]
-    if (this.items[id]) delete this.items[id]
-    if (this.allSpaces[id]) delete this.allSpaces[id]
+    if (options?.purge) {
+      // delte objects
+      if (this._allRawSpaces[id]) delete this._allRawSpaces[id]
+      if (this.items[id]) delete this.items[id]
+      if (this.allSpaces[id]) delete this.allSpaces[id]
+      return { status: 'purged' }
+    }
 
     return { status: 'deleted' }
   }
@@ -1043,18 +1052,19 @@ export class ItemService {
   async _getChildrenOfParents (parentIds) {
     const parents = {}
     for await (const [i, parent] of parentIds.entries()) {
-      const matrixReq = await this.matrixClient.getRoomHierarchy(parent, this.configService.get('fetch.max'), 1)
+      const matrixReq = await this.matrixClient.getRoomHierarchy(parent, this.configService.get('fetch.max'), 1).catch(e => {})
+      if (!matrixReq) return
       const children = _.map(_.filter(matrixReq?.rooms, room => parent !== room.room_id), room => room.room_id)
       parents[parent] = children
     }
     return parents
   }
 
-  _findAndDeleatInStrucutre (id, structure, path) {
+  _findAndDeleatInStrucutre (id, structure, path, options) {
     _.forEach(structure?.children, child => {
       const tmpPath = [...path]
       tmpPath.push(child.id)
-      this._findAndDeleatInStrucutre(id, child, tmpPath)
+      this._findAndDeleatInStrucutre(id, child, tmpPath, options)
     })
 
     if (structure.id === id) {
@@ -1062,7 +1072,13 @@ export class ItemService {
       path.forEach((p, i) => {
         pathWay += "['" + p + "']" + (i < path.length - 1 ? '.children' : '') // yes I know this is fucking ugly as hell I am also hating myself for this at least a bit
       })
-      _.unset(this.structure, pathWay) // this deletes the key
+      if (options?.purge) { // if purge then delete if in any way
+        _.unset(this.structure, pathWay)
+      } else {
+        if (path.length > 0 && options?.parentIds.some(p => p === path[path.length - 2])) { // checks if the found path is part of the partentIds before deleting otherwise will skip
+          _.unset(this.structure, pathWay) // this deletes the key
+        }
+      }
     }
   }
 
