@@ -768,16 +768,18 @@ export class ItemService {
   _generateDetailedList (structure, list) {
     if (structure.type && structure.template && !list.some(f => f.id === structure.id)) {
       // list.push({ [structure.room_id]: { name: structure.name, room_id: structure.room_id, template: structure.template, type: structure.type } })
-      const abstract = this.getAbstract(structure.room_id)
+
+      const space = this._findSpace(structure.id)
       list.push({
         name: structure.name,
         room_id: structure.room_id,
         id: structure.room_id,
         template: structure.template,
         type: structure.type,
-        thumbnail: abstract.thumbnail,
-        authors: abstract.origin.authors,
-        temporalAllocation: abstract.allocation.temporal
+        thumbnail: space?.thumbnail,
+        thumbnail_full_size: space?.thumbnail_full_size,
+        origin: { authors: space?.authors },
+        allocation: space?.allocation
       })
     }
 
