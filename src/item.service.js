@@ -749,6 +749,10 @@ export class ItemService {
     return this._generateList(this.getTree(id), [])
   }
 
+  getDetailedList (id) {
+    return this._generateDetailedList(this.getTree(id), [])
+  }
+
   _generateList (structure, list) {
     if (structure.type && structure.template && !list.some(f => f.id === structure.id)) {
       // list.push({ [structure.room_id]: { name: structure.name, room_id: structure.room_id, template: structure.template, type: structure.type } })
@@ -757,6 +761,28 @@ export class ItemService {
 
     _.forEach(structure?.children, child => {
       list.concat(this._generateList(child, list))
+    })
+    return list
+  }
+
+  _generateDetailedList (structure, list) {
+    if (structure.type && structure.template && !list.some(f => f.id === structure.id)) {
+      // list.push({ [structure.room_id]: { name: structure.name, room_id: structure.room_id, template: structure.template, type: structure.type } })
+      const abstract = this.getAbstract(structure.room_id)
+      list.push({
+        name: structure.name,
+        room_id: structure.room_id,
+        id: structure.room_id,
+        template: structure.template,
+        type: structure.type,
+        thumbnail: abstract.thumbnail,
+        authors: abstract.origin.authors,
+        temporalAllocation: abstract.allocation.temporal
+      })
+    }
+
+    _.forEach(structure?.children, child => {
+      list.concat(this._generateDetailedList(child, list))
     })
     return list
   }
@@ -894,6 +920,13 @@ export class ItemService {
 
   getItemsFilteredByItems (id) {
     const list = this.getList(id)
+    const items = _.filter(list, item => item.type === 'item')
+
+    return _.filter(items, item => this.configService.get('attributable.spaceTypes.item').some(f => f === item.template))
+  }
+
+  getDetailedItemsFilteredByItems (id) {
+    const list = this.getDetailedList(id)
     const items = _.filter(list, item => item.type === 'item')
 
     return _.filter(items, item => this.configService.get('attributable.spaceTypes.item').some(f => f === item.template))
