@@ -8,7 +8,7 @@ import Handlebars from 'handlebars'
 import fs from 'fs'
 import { join } from 'path'
 import moment from 'moment'
-import { now, template } from 'lodash'
+import {isNull, now, parseInt, template} from 'lodash'
 
 @Injectable()
 @Dependencies(ConfigService, HttpService)
@@ -749,8 +749,8 @@ export class ItemService {
     return this._generateList(this.getTree(id), [])
   }
 
-  getDetailedList (id) {
-    return this._generateDetailedList(this.getTree(id), [])
+  getDetailedList (id, depth) {
+    return this._generateDetailedList(this.getTree(id), [], depth)
   }
 
   _generateList (structure, list) {
@@ -765,7 +765,7 @@ export class ItemService {
     return list
   }
 
-  _generateDetailedList (structure, list) {
+  _generateDetailedList (structure, list, depth, counter = 0) {
     if (structure.type && structure.template && !list.some(f => f.id === structure.id)) {
       // list.push({ [structure.room_id]: { name: structure.name, room_id: structure.room_id, template: structure.template, type: structure.type } })
 
@@ -783,9 +783,12 @@ export class ItemService {
       })
     }
 
-    _.forEach(structure?.children, child => {
-      list.concat(this._generateDetailedList(child, list))
-    })
+    if (isNull(depth) || (!isNull(depth) && parseInt(depth) > parseInt(counter))) {
+      _.forEach(structure?.children, child => {
+        list.concat(this._generateDetailedList(child, list, depth, parseInt(counter) + 1))
+      })
+    }
+
     return list
   }
 
@@ -927,8 +930,8 @@ export class ItemService {
     return _.filter(items, item => this.configService.get('attributable.spaceTypes.item').some(f => f === item.template))
   }
 
-  getDetailedItemsFilteredByItems (id) {
-    const list = this.getDetailedList(id)
+  getDetailedItemsFilteredByItems (id, depth = null) {
+    const list = this.getDetailedList(id, depth)
     const items = _.filter(list, item => item.type === 'item')
 
     return _.filter(items, item => this.configService.get('attributable.spaceTypes.item').some(f => f === item.template))
