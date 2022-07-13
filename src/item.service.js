@@ -683,7 +683,7 @@ export class ItemService {
 
     const rawSpace = _.find(this._allRawSpaces, { room_id: id })
     const parentIds = []
-    if (space?.parents.length > 0) {
+    if (space?.parents?.length > 0) {
       space.parents.forEach(parent => {
         if (!(parentIds.indexOf(parent.room_id) > -1)) {
           parentIds.push(parent.room_id)
