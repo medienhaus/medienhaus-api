@@ -208,9 +208,9 @@ export class ItemService {
           }
           // fetch descriptions
           const en = languageSpaces.filter(room => room?.name === 'en')
-          topicEn = en[0].topic || undefined
+          topicEn = en[0] ? en[0].topic : ''
           const de = languageSpaces.filter(room => room?.name === 'de')
-          topicDe = de[0]?.topic || undefined
+          topicDe = de[0] ? de[0].topic : ''
           // fetch authors aka. collaborators
           authorNames = []
 
@@ -526,10 +526,29 @@ export class ItemService {
       userId: this.configService.get('matrix.user_id'),
       useAuthorizationHeader: true
     })
-
+    console.log(projectSpaceId)
     // Get the spaces for the available languages
     const languageSpaces = {}
-    const spaceSummary = await matrixClient.getRoomHierarchy(projectSpaceId, 100, 100)
+    const spaceSummary = await matrixClient.getRoomHierarchy(projectSpaceId, 1000, 1000)
+
+    if (spaceSummary?.rooms.length === 1) {
+      // no language blocks detected get messages directly from timeline of space
+
+      const lastMessage = (await this.httpService.axiosRef(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${projectSpaceId}/messages`, {
+        method: 'GET',
+        headers: { Authorization: 'Bearer ' + this.configService.get('matrix.access_token') },
+        params: {
+          // @TODO Skip deleted messages
+          limit: 1,
+          dir: 'b',
+          // Only consider m.room.message events
+          filter: JSON.stringify({ types: ['m.room.message'] })
+        }
+      })).data.chunk[0]
+
+      const content = lastMessage?.content?.body ? lastMessage?.content?.body : ''
+      return { 0: { type: 'text', content: content, formatted_content: `<div>${content}</div>` } }
+    }
 
     spaceSummary.rooms.map(languageSpace => {
       if (languageSpace.room_id === projectSpaceId) return
@@ -539,13 +558,14 @@ export class ItemService {
     if (!languageSpaces[language]) return
 
     // Get the actual content block rooms for the given language
-    const contentRooms = await matrixClient.getRoomHierarchy(languageSpaces[language], 100, 100)
+    const contentRooms = await matrixClient.getRoomHierarchy(languageSpaces[language], 1000, 1000)
 
     // console.log(contentRooms)
     await Promise.all(contentRooms.rooms.map(async (contentRoom) => {
       // Skip the language space itself
       if (contentRoom.room_id === languageSpaces[language]) return
 
+      console.log(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`)
       // Get the last message of the current content room
       const lastMessage = (await this.httpService.axiosRef(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`, {
         method: 'GET',
@@ -788,7 +808,10 @@ export class ItemService {
       id: space.id,
       name: space?.name,
       template: space?.template,
-      type: space?.type
+      type: space?.type,
+      allocation: space?.allocation,
+      thumbnail: space?.thumbnail,
+      description: space?.description
     }
   }
 
@@ -809,7 +832,7 @@ export class ItemService {
       }))
     } else {
       // console.log(this.getContent(ret.id, 'en'))
-      ret.render = await this.getContent(ret.id, 'en')
+      //ret.render = await this.getContent(ret.id, 'en') // commented out dont know why this is there
     }
 
     return ret
@@ -878,6 +901,37 @@ export class ItemService {
     return list
   }
 
+  // Stechlin 2023
+
+  async getFullList (id) {
+    const fullTree = await this.getFullTree(id)
+
+    return this._getEntries(fullTree, [])
+  }
+
+  _getEntries (level, entries) {
+    _.forEach(level?.item, item => {
+      entries.push(item)
+    })
+    _.forEach(level?.context, context => {
+      entries.push(context)
+    })
+
+    _.forEach(level?.children, child => {
+      entries = this._getEntries(child, entries)
+    })
+
+    return entries
+  }
+
+  async getItemsOfFullListFilteredByItems (id) {
+    const fullList = await this.getFullList(id)
+
+    const items = _.filter(fullList, { type: 'item' })
+
+    return _.filter(items, item => this.configService.get('attributable.spaceTypes.item').some(f => f === item.template))
+  }
+
   /// //// POST
 
   async postFetch (id, options) {
@@ -909,7 +963,7 @@ export class ItemService {
     const oldRawSpace = _.find(this._allRawSpaces, { room_id: id })
     const oldTree = this._findSubTree(this.getStructure()[this.configService.get('matrix.root_context_space_id')], id)
 
-    const newSpace = await this._getBatch(id, { max: 100, depth: 1 }, false, [], matrixClient)
+    const newSpace = await this._getBatch(id, { max: 1000, depth: 1 }, false, [], matrixClient)
 
     const stateEvents = await matrixClient.roomState(id).catch(() => {})
     const extendedData = await this._getStateData(stateEvents, id, rawSpaces)

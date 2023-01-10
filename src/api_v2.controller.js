@@ -104,6 +104,18 @@ export class ApiV2Controller {
     return this.itemService.getFullTree(id)
   }
 
+  @Get('/api/v2/:id/fullList')
+  @Bind(Param())
+  apiGetFullList ({ id }) {
+    return this.itemService.getFullList(id)
+  }
+
+  @Get('/api/v2/:id/fullList/filter/type/item')
+  @Bind(Param())
+  apiGetItemsOfFullListFilteredByItems ({ id }) {
+    return this.itemService.getItemsOfFullListFilteredByItems(id)
+  }
+
   @Post('api/v2/:id/fetch')
   @Bind(Body(), Param())
   apiPostFetch (body, params) {
