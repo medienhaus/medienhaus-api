@@ -526,10 +526,12 @@ export class ItemService {
       userId: this.configService.get('matrix.user_id'),
       useAuthorizationHeader: true
     })
-    console.log(projectSpaceId)
+    
     // Get the spaces for the available languages
     const languageSpaces = {}
     const spaceSummary = await matrixClient.getRoomHierarchy(projectSpaceId, 1000, 1000)
+
+
 
     if (spaceSummary?.rooms.length === 1) {
       // no language blocks detected get messages directly from timeline of space
@@ -811,7 +813,11 @@ export class ItemService {
       type: space?.type,
       allocation: space?.allocation,
       thumbnail: space?.thumbnail,
-      description: space?.description
+      description: {
+        default: space?.topicEn,
+        EN: space?.topicEn,
+        DE: space?.topicDe
+      }
     }
   }
 
@@ -832,7 +838,7 @@ export class ItemService {
       }))
     } else {
       // console.log(this.getContent(ret.id, 'en'))
-      //ret.render = await this.getContent(ret.id, 'en') // commented out dont know why this is there
+      // ret.render = await this.getContent(ret.id, 'en') // commented out dont know why this is there
     }
 
     return ret
@@ -906,7 +912,13 @@ export class ItemService {
   async getFullList (id) {
     const fullTree = await this.getFullTree(id)
 
-    return this._getEntries(fullTree, [])
+    const ids = []
+    return _.map(this._getEntries(fullTree, []), (entry) => {
+      if (!ids.includes(entry.id)) {
+        ids.push(entry.id)
+        return entry
+      }
+    })
   }
 
   _getEntries (level, entries) {
