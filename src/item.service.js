@@ -651,7 +651,8 @@ export class ItemService {
         type: space.type,
         template: space.template,
         thumbnail: space.thumbnail ? space.thumbnail : undefined,
-        thumbnail_full_size: space.thumbnail_full_size ? space.thumbnail_full_size : undefined
+        thumbnail_full_size: space.thumbnail_full_size ? space.thumbnail_full_size : undefined,
+        parents: space.parents
       }
       switch (abstract.type) {
         case 'item':
@@ -659,10 +660,10 @@ export class ItemService {
           break
         case 'context':
           userAbstract.context.push(abstract)
-          break;
+          break
         case 'content':
           userAbstract.content.push(abstract)
-          break;
+          break
         default:
           break
       }
