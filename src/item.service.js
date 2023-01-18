@@ -21,6 +21,8 @@ export class ItemService {
 
     this.allSpaces = {}
     this._allRawSpaces = {}
+
+    this.allUsers = {}
   }
 
   @Interval(30 * 60 * 1000) // Call this every 30 minutes
@@ -526,12 +528,10 @@ export class ItemService {
       userId: this.configService.get('matrix.user_id'),
       useAuthorizationHeader: true
     })
-    
+
     // Get the spaces for the available languages
     const languageSpaces = {}
     const spaceSummary = await matrixClient.getRoomHierarchy(projectSpaceId, 1000, 1000)
-
-
 
     if (spaceSummary?.rooms.length === 1) {
       // no language blocks detected get messages directly from timeline of space
@@ -630,8 +630,69 @@ export class ItemService {
     }
   }
 
+  getAbstractUser (userId) {
+    const userAbstract = {
+      id: userId,
+      type: 'user',
+      template: '',
+      context: [],
+      content: [],
+      item: []
+    }
+    const userSpaces = this._findSpacesByUser(userId)
+    if (!userSpaces.length > 0) {
+      return userAbstract
+    }
+
+    userSpaces.forEach(space => {
+      const abstract = {
+        id: space.id,
+        name: space.name,
+        type: space.type,
+        template: space.template,
+        thumbnail: space.thumbnail ? space.thumbnail : undefined,
+        thumbnail_full_size: space.thumbnail_full_size ? space.thumbnail_full_size : undefined
+      }
+      switch (abstract.type) {
+        case 'item':
+          userAbstract.item.push(abstract)
+          break
+        case 'context':
+          userAbstract.context.push(abstract)
+          break;
+        case 'content':
+          userAbstract.content.push(abstract)
+          break;
+        default:
+          break
+      }
+    })
+    const userData = this._extractUserInformationsFromSpace(userId, userSpaces[0])
+
+    userAbstract.name = userData.name ? userData.name : ''
+    userAbstract.thumbnail = userData.avatar ? userData.avatar : ''
+    userAbstract.thumbnail_full_size = userData.avatar ? userData.avatar : ''
+
+    return userAbstract
+  }
+
+  _findSpacesByUser (userId) {
+    return _.filter(this.allSpaces, (space) => {
+      if (_.find(space?.authors, (author) => { return author.id === userId })) {
+        return space
+      }
+    })
+  }
+
+  _extractUserInformationsFromSpace (userId, space) {
+    return _.find(space?.authors, { id: userId })
+  }
+
   getAbstract (id) {
+    if (id?.charAt(0) === '@') return this.getAbstractUser(id) // check if the requested Id is a user instead of a room
+
     const space = this._findSpace(id)
+    console.log(space)
     if (!space) return
 
     const rawSpace = _.find(this._allRawSpaces, { room_id: id })
