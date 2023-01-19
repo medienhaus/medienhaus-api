@@ -587,6 +587,7 @@ export class ItemService {
       const content = (() => {
         switch (type) {
           case 'audio':
+          case 'file':
           case 'image':
             return matrixClient.mxcUrlToHttp(lastMessage.content.url)
           default: return lastMessage.content.body
