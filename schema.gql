@@ -1,0 +1,18 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Book {
+  """This a an author id"""
+  id: String
+
+  """This a an author name"""
+  name: String!
+
+  """This a an author age"""
+  pages: Float
+}
+
+type Query {
+  dummy: String!
+}

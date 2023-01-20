@@ -694,7 +694,6 @@ export class ItemService {
     if (id?.charAt(0) === '@') return this.getAbstractUser(id) // check if the requested Id is a user instead of a room
 
     const space = this._findSpace(id)
-    console.log(space)
     if (!space) return
 
     const rawSpace = _.find(this._allRawSpaces, { room_id: id })
