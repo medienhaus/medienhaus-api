@@ -7,10 +7,10 @@ import configuration from '../config'
 import { ItemService } from './item.service'
 import { ScheduleModule } from '@nestjs/schedule'
 import { HttpModule, HttpService } from '@nestjs/axios'
-import { GraphQLModule } from '@nestjs/graphql';
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import {ItemResolver} from './item.resolver'
-
+import { GraphQLModule } from '@nestjs/graphql'
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
+import { ItemResolver } from './item.resolver'
+import { join } from 'path'
 
 @Module({
   imports: [
@@ -19,7 +19,12 @@ import {ItemResolver} from './item.resolver'
     }),
     GraphQLModule.forRoot({
       driver: ApolloDriver,
-      autoSchemaFile: 'schema.gql',
+      typePaths: ['./**/*.graphql'],
+      definitions: {
+        path: join(process.cwd(), 'src/graphql.js'),
+        outputAs: 'class'
+      },
+      playground: true
     }),
     ScheduleModule.forRoot(),
     HttpModule
@@ -35,8 +40,8 @@ import {ItemResolver} from './item.resolver'
         await x.fetch()
         return x
       }
-    }
-    , ItemResolver
+    },
+    ItemResolver
   ]
 })
 export class AppModule {}

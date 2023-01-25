@@ -1,84 +1,44 @@
-import { Field, Int, ObjectTyp,Resolver,Query,Args,ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectTyp, Resolver, Query, Args, ObjectType } from '@nestjs/graphql'
 import { Bind, Dependencies } from '@nestjs/common'
 import { AppService } from './app.service'
+import _ from 'lodash'
 
-
-@Resolver()
-@Dependencies(AppService)
+@Resolver('Space')
+@Dependencies(AppService, 'ITEM_PROVIDER')
 export class ItemResolver {
-  constructor (appService) {
+  constructor (appService, itemService) {
     this.appService = appService
+    this.itemService = itemService
+
+    // Initializing custom caching arrays specifically for the graphql data interface.
+    // All of this chaos needs to get rid of in the rewrite of this api
+    this.itemService.servers = []
+    this.itemService.users = []
+    this.itemService.contents = []
   }
 
-  @Query(type => String,{ name: `dummy`})
-  @Bind(Args('id'))
-  async testQuery(id) {
-    console.log(id)
-    return "test";
-  }
-
-
-  // @Query(returns => Author)
-  // async basicTest() {
-  //   const b = {id:"b1",name:"some book", pages: 100, year: 100}
-  //   const a = {id:"a",name:"b", books:[b]}
-  //   console.log(a)
-  //   return a;
+  // @Query(returns => String)
+  // async hello () {
+  //   return 'Hello, World'
   // }
 
-}   
+  // @Query()
+  // @Bind(Args())
+  // async getSpace ({ id }) {
+  //   const space = this.itemService.getAbstract(id)
+  //   return space
+  // }
 
+  @Query()
+  async spaces () {
+    const spaces = _.map(this.itemService.allSpaces, (space) => space)
+    return spaces
+  }
 
-
-@ObjectType()
-export class Author {
-
- @Field(type => String,{ description: `This a an author id`, type: String, nullable: true})
- id
-
- @Field(type => String,{ description: `This a an author name`, type: String})
- name
-
- @Field(type => Number,{ description: `This a an author age`, type: Number, nullable:true})
- age
-
- @Field(type => [Book],{ description: `This a an author bookslist`, type: [Book], nullable:true})
- books
- 
-
+  @Query()
+  async servers () {
+    console.log((_.map(this.itemService.allSpaces, (space) => space)).length)
+    // const servers = [...new Set(_.map(this.itemService.allSpaces, (space) => space))] // filter out all of the double ones
+    return this.itemService.servers
+  }
 }
-
-
-@ObjectType()
-export class Book {
-
- @Field(type => String,{ description: `This a an author id`, type: String, nullable: true})
- id
-
- @Field(type => String,{ description: `This a an author name`, type: String})
- name
-
- @Field(type => Number,{ description: `This a an author age`, type: Number, nullable:true})
- pages
- 
-
-}
-
-
-// const SpaceType = new GraphQLObjectType({
-//     name: 'Space',
-//     description: 'This represents a space',
-//     fields: () => ({
-//       id: { type: GraphQLNonNull(GraphQLString) },
-//       name: { type: GraphQLNonNull(GraphQLString) }
-//     })
-//   })
-
-
-
-// @Query(returns => Number)
-
-// async configA() {
-  
-//   return 1234;
-// }
