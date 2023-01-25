@@ -138,6 +138,7 @@ export class ItemService {
       const nameEvent = _.find(stateEvents, { type: 'm.room.name' })
       if (!nameEvent) return
       const allocationEvent = _.find(stateEvents, { type: 'dev.medienhaus.allocation' })
+      const tagEvent = _.find(stateEvents, { type: 'dev.medienhaus.tags' })
       const joinRulesEvent = _.find(stateEvents, { type: 'm.room.join_rules' })
 
       const parent = {}
@@ -259,6 +260,7 @@ export class ItemService {
         published: published,
         children: children,
         allocation: { physical: allocationEvent?.content?.physical, temporal: allocationEvent?.content?.temporal },
+        tags: tagEvent?.content?.tags,
         thumbnail: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'scale') : '',
         thumbnail_full_size: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url) : ''
       }
@@ -715,6 +717,7 @@ export class ItemService {
       template: space?.template,
       thumbnail: space?.thumbnail,
       thumbnail_full_size: space?.thumbnail_full_size,
+      tags: space?.tags,
       origin: {
         applications: [],
         server: [space.id.split(':')[1]],
@@ -1164,6 +1167,7 @@ export class ItemService {
       parentSpaceId: parent.room_id,
       authors: authorNames,
       members: members,
+      
       published: published,
       children: children,
       allocation: { physical: allocationEvent?.content?.physical },
