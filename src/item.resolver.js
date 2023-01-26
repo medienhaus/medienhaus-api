@@ -9,12 +9,6 @@ export class ItemResolver {
   constructor (appService, itemService) {
     this.appService = appService
     this.itemService = itemService
-
-    // Initializing custom caching arrays specifically for the graphql data interface.
-    // All of this chaos needs to get rid of in the rewrite of this api
-    this.itemService.servers = []
-    this.itemService.users = []
-    this.itemService.contents = []
   }
 
   // @Query(returns => String)
@@ -36,9 +30,39 @@ export class ItemResolver {
   }
 
   @Query()
+  async contexts () {
+    return this.itemService.users
+  }
+
+  @Query()
+  async items () {
+    return this.itemService.allSpaces
+  }
+
+  @Query()
+  async contents () {
+    return this.itemService.contents
+  }
+
+  @Query()
+  @Bind(Args())
+  async user ({ id }) {
+    return this.itemService.getUser(id)
+  }
+
+  @Query()
+  async users () {
+    return _.map(this.itemService.users, user => this.itemService.getUser(user.id))
+  }
+
+  @Query()
+  @Bind(Args())
+  async server ({ url }) {
+    return this.itemService.getServer(url)
+  }
+
+  @Query()
   async servers () {
-    console.log((_.map(this.itemService.allSpaces, (space) => space)).length)
-    // const servers = [...new Set(_.map(this.itemService.allSpaces, (space) => space))] // filter out all of the double ones
-    return this.itemService.servers
+    return _.map(this.itemService.servers, server => this.itemService.getServer(server.url))
   }
 }

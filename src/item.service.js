@@ -22,7 +22,11 @@ export class ItemService {
     this.allSpaces = {}
     this._allRawSpaces = {}
 
-    this.allUsers = {}
+    // Initializing custom caching arrays specifically for the graphql data interface.
+    // All of this chaos needs to get rid of in the rewrite of this api
+    this.servers = []
+    this.users = []
+    this.contents = []
   }
 
   @Interval(30 * 60 * 1000) // Call this every 30 minutes
@@ -109,7 +113,7 @@ export class ItemService {
         })
         const metaEvent = _.find(space.stateEvents, { type: 'dev.medienhaus.meta' })
         // if (filter.some(f => f === metaEvent?.content?.type)) { return { name: space.name, room_id: space.room_id, type: metaEvent?.content?.type, children: children } }
-        return { name: space.name, room_id: space.room_id, id: space.room_id, type: metaEvent?.content?.type, template: metaEvent?.content?.template, children: children }
+        return { name: space.name, room_id: space.room_id, id: space.room_id, type: metaEvent?.content?.type, template: metaEvent?.content?.template, children }
       }
     }
 
@@ -250,15 +254,15 @@ export class ItemService {
       return {
         name: spaceName,
         template: metaEvent?.content?.template,
-        topicEn: topicEn,
+        topicEn,
         type: metaEvent?.content?.type,
-        topicDe: topicDe,
+        topicDe,
         parent: parent.name,
         parentSpaceId: parent.room_id,
-        parents: parents,
-        authors: authors,
-        published: published,
-        children: children,
+        parents,
+        authors,
+        published,
+        children,
         allocation: { physical: allocationEvent?.content?.physical, temporal: allocationEvent?.content?.temporal },
         tags: tagEvent?.content?.tags,
         thumbnail: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'scale') : '',
@@ -284,6 +288,25 @@ export class ItemService {
     })
 
     Logger.log(`Found ${Object.keys(this.items).length} items`)
+
+    // new for graphQL functionality
+    _.forEach(this.allSpaces, space => {
+      // fill users
+      _.forEach(space?.authors, author => {
+        if (!this.users.find(({ id }) => id === author.id)) {
+          if (author.id) {
+            this.users.push({ id: author.id, name: author.name, thumbnail: author?.avatar, thumbnail_full_size: author?.avatar })
+          }
+        }
+      })
+
+      // fill servers
+      const spaceUrl = space.id.split(':')[1]
+      if (!this.servers.find(({ url }) => url === spaceUrl)) {
+      //  this.servers.push({ url: spaceUrl, users: [], context: [], item: [], content: [] })
+        this.servers.push({ url: spaceUrl })
+      }
+    })
   }
 
   applyFilterToStructure (structure_, filter, ret) {
@@ -418,7 +441,7 @@ export class ItemService {
     let ret
     Object.entries(level).forEach(([key, content]) => {
       if (key === id) {
-        ret = { [parent.id]: { id: parent.id, name: parent.name, child: { [id]: { id: id, name: content.name } } } }
+        ret = { [parent.id]: { id: parent.id, name: parent.name, child: { [id]: { id, name: content.name } } } }
       } else {
         if (content.children && Object.keys(content.children).length > 0) {
           Object.entries(content.children).forEach(([childK, childC]) => {
@@ -551,7 +574,7 @@ export class ItemService {
       })).data.chunk[0]
 
       const content = lastMessage?.content?.body ? lastMessage?.content?.body : ''
-      return { 0: { type: 'text', content: content, formatted_content: `<div>${content}</div>` } }
+      return { 0: { type: 'text', content, formatted_content: `<div>${content}</div>` } }
     }
 
     spaceSummary.rooms.map(languageSpace => {
@@ -709,7 +732,7 @@ export class ItemService {
     }
 
     return {
-      id: id,
+      id,
       allocation: space?.allocation,
       type: space?.type,
       name: space?.name,
@@ -944,7 +967,7 @@ export class ItemService {
       useAuthorizationHeader: true
     })
 
-    return { abstract: { name: abstract?.name, thumbnail: abstract?.thumbnail, thumbnail_full_size: abstract?.thumbnail_full_size, description: abstract?.description }, languages: languages }
+    return { abstract: { name: abstract?.name, thumbnail: abstract?.thumbnail, thumbnail_full_size: abstract?.thumbnail_full_size, description: abstract?.description }, languages }
   }
 
   getTreeFiltedByContext (id) {
@@ -1007,6 +1030,24 @@ export class ItemService {
     const items = _.filter(fullList, { type: 'item' })
 
     return _.filter(items, item => this.configService.get('attributable.spaceTypes.item').some(f => f === item.template))
+  }
+
+  /// ////// GRAPHQL
+
+  getServer (serverUrl) {
+    const server = _.find(this.servers, ({ url }) => url === serverUrl)
+    if (server) {
+      server.users = _.filter(this.users, ({ id }) => id.split(':')[1] === server.url)
+    }
+    return server
+  }
+
+  getUser (userId) {
+    const user = _.find(this.users, ({ id }) => id === userId)
+    if (user) {
+      user.server = this.getServer(user.id.split(':')[1])
+    }
+    return user
   }
 
   /// //// POST
@@ -1159,16 +1200,16 @@ export class ItemService {
     return {
       name: spaceName,
       template: metaEvent?.content?.template,
-      topicEn: topicEn,
-      type: type,
-      topicDe: topicDe,
+      topicEn,
+      type,
+      topicDe,
       parent: parent.name,
       parentSpaceId: parent.room_id,
       authors: authorNames,
-      members: members,
-      
-      published: published,
-      children: children,
+      members,
+
+      published,
+      children,
       allocation: { physical: allocationEvent?.content?.physical },
       thumbnail: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'scale') : '',
       thumbnail_full_size: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url) : ''

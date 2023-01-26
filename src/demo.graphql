@@ -158,7 +158,7 @@ type Content  implements Space  {
 type User {
     id: String!
     name: String
-    sever: Server
+    server: Server
     thumbnail: String
     thumbnail_full_size: String
     context: [Context]
@@ -181,13 +181,13 @@ type Query {
     space(id: String!): Entry
 
     items: [Item]
-    item(id: String!): Item
+    # item(id: String!): Item
 
     contexts: [Context]
-    context(id: String!): Context
+    # context(id: String!): Context
 
     contents: [Content]
-    content(id: String!): Content
+    # content(id: String!): Content
 
     servers: [Server]
     server(url:String!): Server
