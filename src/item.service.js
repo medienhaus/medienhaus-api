@@ -1050,6 +1050,43 @@ export class ItemService {
     return user
   }
 
+  // CUSTOM ROUTE FOR D3
+
+  getD3Abstract (id) {
+    const space = this._findSpace(id)
+    return {
+      name: space.name,
+      id: space.id,
+      type: space.type,
+      template: space.template,
+      children: _.map(space?.children, child => {
+        const childSpaceAbstract = this._findSpace(child)
+        return { name: childSpaceAbstract.name, type: childSpaceAbstract.type, template: childSpaceAbstract.template, id: child }
+      })
+    }
+  }
+
+  getD3FullTree (id) {
+    const space = this._findSpace(id)
+    if (!space) return
+
+    const children = _.compact(_.map(space?.children, child => this.getD3FullTree(child))).filter(v => v !== null)
+
+    const ret = {
+      name: space?.name,
+      id: space?.id,
+      type: space?.type,
+      template: space?.template,
+      value:100
+    }
+
+    if (children?.length > 0) {
+      ret.children = children
+    }
+
+    return ret
+  }
+
   /// //// POST
 
   async postFetch (id, options) {

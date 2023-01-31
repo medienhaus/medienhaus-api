@@ -17,7 +17,7 @@ interface Space {
 }
 
 type Origin {
-    application: [String]
+    application: [Application]
     server: [Server]
     authors: [User]
 }
@@ -32,6 +32,10 @@ type Description {
 type Allocation {
     physical: [Physical]
     temporal: [Temporal]
+}
+
+type Application {
+    name: String
 }
 
 
@@ -177,7 +181,9 @@ type Server {
 
 type Query {
 
-    spaces: [Entry]
+    #spaces: [Entry]
+    spaces(template:String,type:String): [Entry]
+
     space(id: String!): Entry
 
     items: [Item]

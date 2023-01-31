@@ -116,6 +116,18 @@ export class ApiV2Controller {
     return this.itemService.getItemsOfFullListFilteredByItems(id)
   }
 
+  @Get('/api/v2/:id/render/d3')
+  @Bind(Param())
+  apiGetAbstractAsD3 ({ id }) {
+    return this.itemService.getD3Abstract(id)
+  }
+
+  @Get('/api/v2/:id/render/d3/fulltree')
+  @Bind(Param())
+  apiGetAbstractAsD3Fulltree ({ id }) {
+    return this.itemService.getD3FullTree(id)
+  }
+
   @Post('api/v2/:id/fetch')
   @Bind(Body(), Param())
   apiPostFetch (body, params) {

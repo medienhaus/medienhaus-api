@@ -23,7 +23,7 @@ export interface Space {
 }
 
 export class Origin {
-    application?: Nullable<Nullable<string>[]>;
+    application?: Nullable<Nullable<Application>[]>;
     server?: Nullable<Nullable<Server>[]>;
     authors?: Nullable<Nullable<User>[]>;
 }
@@ -36,6 +36,10 @@ export class Description {
 export class Allocation {
     physical?: Nullable<Nullable<Physical>[]>;
     temporal?: Nullable<Nullable<Temporal>[]>;
+}
+
+export class Application {
+    name?: Nullable<string>;
 }
 
 export class Physical {
@@ -140,7 +144,7 @@ export class Server {
 }
 
 export abstract class IQuery {
-    abstract spaces(): Nullable<Nullable<Entry>[]> | Promise<Nullable<Nullable<Entry>[]>>;
+    abstract spaces(template?: Nullable<string>, type?: Nullable<string>): Nullable<Nullable<Entry>[]> | Promise<Nullable<Nullable<Entry>[]>>;
 
     abstract space(id: string): Nullable<Entry> | Promise<Nullable<Entry>>;
 
