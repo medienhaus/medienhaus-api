@@ -18,7 +18,7 @@ export interface Space {
     parents?: Nullable<Nullable<Entry>[]>;
     allocation?: Nullable<Allocation>;
     origin?: Nullable<Origin>;
-    description?: Nullable<Description>;
+    description?: Nullable<Nullable<Description>[]>;
     localDepth?: Nullable<string>;
 }
 
@@ -75,7 +75,7 @@ export class Entry implements Space {
     thumbnail_full_size?: Nullable<string>;
     allocation?: Nullable<Allocation>;
     origin?: Nullable<Origin>;
-    description?: Nullable<Description>;
+    description?: Nullable<Nullable<Description>[]>;
     localDepth?: Nullable<string>;
 }
 
@@ -90,7 +90,7 @@ export class Item implements Space {
     thumbnail_full_size?: Nullable<string>;
     allocation?: Nullable<Allocation>;
     origin?: Nullable<Origin>;
-    description?: Nullable<Description>;
+    description?: Nullable<Nullable<Description>[]>;
     localDepth?: Nullable<string>;
 }
 
@@ -106,7 +106,7 @@ export class Context implements Space {
     thumbnail_full_size?: Nullable<string>;
     allocation?: Nullable<Allocation>;
     origin?: Nullable<Origin>;
-    description?: Nullable<Description>;
+    description?: Nullable<Nullable<Description>[]>;
     localDepth?: Nullable<string>;
 }
 
@@ -120,7 +120,7 @@ export class Content implements Space {
     thumbnail_full_size?: Nullable<string>;
     allocation?: Nullable<Allocation>;
     origin?: Nullable<Origin>;
-    description?: Nullable<Description>;
+    description?: Nullable<Nullable<Description>[]>;
     localDepth?: Nullable<string>;
 }
 

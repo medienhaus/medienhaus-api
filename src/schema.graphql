@@ -9,7 +9,7 @@ interface Space {
     parents: [Entry]
     allocation: Allocation
     origin: Origin
-    description: Description
+    description: [Description]
     localDepth: String
 
     
@@ -106,7 +106,7 @@ type Entry implements Space {
     thumbnail_full_size: String
     allocation: Allocation
     origin: Origin
-    description: Description
+    description: [Description]
     localDepth: String
     
 }
@@ -122,7 +122,7 @@ type Item implements Space {
     thumbnail_full_size: String
     allocation: Allocation
     origin: Origin
-    description: Description
+    description: [Description]
     localDepth: String
     
 }
@@ -139,7 +139,7 @@ type Context  implements Space  {
     thumbnail_full_size: String
     allocation: Allocation
     origin: Origin
-    description: Description
+    description: [Description]
     localDepth: String
 }
 
@@ -153,7 +153,7 @@ type Content  implements Space  {
     thumbnail_full_size: String
     allocation: Allocation
     origin: Origin
-    description: Description
+    description: [Description]
     localDepth: String
 }
 

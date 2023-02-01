@@ -1079,6 +1079,50 @@ export class ItemService {
     return _.compact(spaces)
   }
 
+  // converting to type orientated schema from graphql. This is such a mess, rewrite highly needed!
+  convertSpaces (spaces) {
+    return _.map(spaces, space => {
+      return this.convertSpace(space?.id, space)
+    })
+  }
+
+  convertSpace (id, space) {
+    if (!space) space = this._findSpace(id)
+    return {
+      id: space?.id,
+      name: space?.name,
+      type: space?.name,
+      template: space?.template,
+      thumbnail: space?.thumbnail,
+      thumbnail_full_size: space?.thumbnail_full_size,
+      parents: _.map(space?.parents, parent => this.convertSpace(this._findSpace(parent?.room_id))),
+      origin: this.convertOrigin(id, { application: [], server: [], authors: space?.authors }) // still contains placeholder which needs to be fixed in the future
+    }
+  }
+
+  convertOrigin (id, origin) {
+    _.map(origin.authors, author => console.log(this.getServer(author.id?.split(':')[1])))
+    const ret = {
+      application: [{ name: '' }], // needs to be implemented in the future, is not cached from the dev.medienhaus.meta event so far
+      server: _.map(origin.authors, author => this.getServer(author?.id?.split(':')[1])),
+      authors: _.map(origin.authors, author => this.getUser(author?.id))
+    }
+
+    return ret
+  }
+
+  convertDescription (id, description) {
+
+  }
+
+  convertAllocation (id, allocation) {
+
+  }
+
+  convertApplication (id, application) {
+
+  }
+
   // CUSTOM ROUTE FOR D3
 
   getD3Abstract (id) {

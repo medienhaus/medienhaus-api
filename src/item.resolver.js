@@ -14,7 +14,13 @@ export class ItemResolver {
   @Query()
   @Bind(Args())
   async spaces ({ template, type }) {
-    return this.itemService.getSpaces(template, type)
+    return this.itemService.convertSpaces(this.itemService.getSpaces(template, type))
+  }
+
+  @Query()
+  @Bind(Args())
+  async space ({ id }) {
+    return this.itemService.convertSpace(id)
   }
 
   // META TYPES
