@@ -1050,6 +1050,35 @@ export class ItemService {
     return user
   }
 
+  getSpaces (template, type) {
+    let spaces = []
+    if (type && ((type === 'item') || (type === 'content') || (type === 'context'))) {
+      spaces = _.map(this.allSpaces, (space) => {
+        if (space?.type === type) {
+          return space
+        }
+      })
+    }
+
+    if (template) {
+      if (!(spaces?.length > 0)) {
+        spaces = _.map(this.allSpaces, (space) => space)
+      }
+      const allowedTemplates = [...this.configService.get('attributable.spaceTypes.item'), ...this.configService.get('attributable.spaceTypes.content'), ...this.configService.get('attributable.spaceTypes.context')]
+      spaces = _.filter(spaces, space => {
+        if (space?.template === template && allowedTemplates.some(f => f === space?.template)) {
+          return space
+        }
+      })
+    }
+
+    if (!template && !type && !spaces?.length > 0) { // if not template and not type defined just get the raw information. it is done this way to pevent to cyle to many times through the full array
+      spaces = _.map(this.allSpaces, (space) => space)
+    }
+
+    return _.compact(spaces)
+  }
+
   // CUSTOM ROUTE FOR D3
 
   getD3Abstract (id) {
@@ -1077,7 +1106,7 @@ export class ItemService {
       id: space?.id,
       type: space?.type,
       template: space?.template,
-      value:100
+      value: 100
     }
 
     if (children?.length > 0) {

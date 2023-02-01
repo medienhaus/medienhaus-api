@@ -14,8 +14,7 @@ export class ItemResolver {
   @Query()
   @Bind(Args())
   async spaces ({ template, type }) {
-    const spaces = _.map(this.itemService.allSpaces, (space) => space)
-    return spaces
+    return this.itemService.getSpaces(template, type)
   }
 
   // META TYPES
@@ -24,7 +23,7 @@ export class ItemResolver {
 
   @Query()
   async contexts () {
-    return this.itemService.users
+    return this.itemService.getSpaces(null, 'context')
   }
 
   // @Query()
@@ -37,7 +36,7 @@ export class ItemResolver {
 
   @Query()
   async items () {
-    return this.itemService.allSpaces
+    return this.itemService.getSpaces(null, 'item')
   }
 
   // @Query()
