@@ -278,6 +278,7 @@ export class ItemService {
     this._allRawSpaces = allSpaces
     this.allSpaces = await generateAllSpaces(allSpaces)
     this.structure = structure
+    this.contents = []
 
     // console.log(_.find(this._allRawSpaces,space => space.room_id === '!klLhNzPtFJxaLFQJKB:stechlin-institut.ruralmindshift.org'))
 
@@ -537,7 +538,11 @@ export class ItemService {
   }
 
   async getContent (projectSpaceId, language) {
+    const cachedContent = this.contents.find((cache) => cache.id === projectSpaceId && cache.language === language)
+    if (cachedContent) return cachedContent.content
+
     const contentBlocks = await this.getContentBlocks(projectSpaceId, language)
+    this.contents.push({ id: projectSpaceId, language, content: contentBlocks })
     if (!contentBlocks) return
     return {
       content: contentBlocks,
@@ -592,7 +597,7 @@ export class ItemService {
       // Skip the language space itself
       if (contentRoom.room_id === languageSpaces[language]) return
 
-      console.log(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`)
+      // console.log(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`)
       // Get the last message of the current content room
       const lastMessage = (await this.httpService.axiosRef(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`, {
         method: 'GET',
@@ -919,6 +924,9 @@ export class ItemService {
 
   async _extendTreeData (structure, ret) {
     ret = this.getAbstract(structure.id)
+    if (!ret) {
+      ret = {}
+    }
     ret.children = {}
     if (ret.type !== 'item') {
       await Promise.all(_.map(structure?.children, async (child) => {
