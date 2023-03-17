@@ -10,6 +10,7 @@ import { join } from 'path'
 import moment from 'moment'
 import { template } from 'lodash'
 
+
 @Injectable()
 @Dependencies(ConfigService, HttpService)
 export class ItemService {
@@ -87,7 +88,6 @@ export class ItemService {
       Logger.log(Object.keys(ret).length)
       for await (const [i, space] of hierarchy?.rooms.entries()) {
         // await Promise.all(hierarchy?.rooms.map(async (space) => {
-
         const stateEvents = await matrixClient.roomState(space?.room_id).catch((e) => { console.log(space?.room_id) })
         if (stateEvents?.some(state => state.type === 'dev.medienhaus.meta')) {
           ret[space?.room_id].stateEvents = stateEvents
@@ -99,12 +99,17 @@ export class ItemService {
       return ret
     }
 
-    function generateStructure (spaces, spaceId, structure) {
+    function generateStructure (spaces, spaceId, structure, lastId) {
       const space = _.find(spaces, { room_id: spaceId })
       if (space) {
         const children = {}
         space?.children_state.forEach(childrenState => {
-          const ret = generateStructure(spaces, childrenState.state_key, structure)
+          let ret
+          if (childrenState.state_key !== lastId) {
+            ret = generateStructure(spaces, childrenState.state_key, structure, spaceId)
+          }
+
+
           if (ret) {
             if (_.find(_.find(spaces, space => space.room_id === ret.room_id).stateEvents, { type: 'dev.medienhaus.meta' })) {
               children[ret.room_id] = ret
@@ -171,6 +176,8 @@ export class ItemService {
 
       const children = []
 
+      let languageSpaces
+
       const joinedMembers = await matrixClient.getJoinedRoomMembers(spaceId).catch((e) => { console.log(spaceId) })
       const users = _.find(stateEvents, { type: 'm.room.power_levels' })?.content?.users
       const authors = _.map(joinedMembers?.joined, (member, memberId) => _.some(users, (userData, userId) => userId === memberId && userData >= 50 && memberId !== configService.get('matrix.user_id'))
@@ -206,7 +213,7 @@ export class ItemService {
           //  console.log('bing')
             return
           }
-          const languageSpaces = languageSpaceIds.map(languageSpace => {
+          languageSpaces = languageSpaceIds.map(languageSpace => {
             return _.find(rawSpaces, room => room.room_id === languageSpace)
           })
           if (!languageSpaces) {
@@ -257,6 +264,7 @@ export class ItemService {
         topicEn,
         type: metaEvent?.content?.type,
         topicDe,
+        languages: languageSpaces?.map(lang => lang.name),
         parent: parent.name,
         parentSpaceId: parent.room_id,
         parents,
@@ -533,21 +541,30 @@ export class ItemService {
     if (!this.items[id]) {
       return null
     }
+
+    console.log(this.items[id])
+    if (this.items[id].content) return this.items[id]
     const { content, formattedContent } = await this.getContent(id, language)
     return { ...this.items[id], content, formatted_content: formattedContent }
   }
 
   async getContent (projectSpaceId, language) {
-    const cachedContent = this.contents.find((cache) => cache.id === projectSpaceId && cache.language === language)
-    if (cachedContent) return cachedContent.content
+    // const cachedContent = this.contents.find((cache) => cache.id === projectSpaceId && cache.language === language)
+    // if (cachedContent) return cachedContent.content
 
     const contentBlocks = await this.getContentBlocks(projectSpaceId, language)
-    this.contents.push({ id: projectSpaceId, language, content: contentBlocks })
+    // this.contents.push({ id: projectSpaceId, language, content: contentBlocks })
     if (!contentBlocks) return
-    return {
+
+    const ret = {
       content: contentBlocks,
       formattedContent: Object.keys(contentBlocks).map(index => contentBlocks[index].formatted_content).join('')
     }
+
+    this.items[projectSpaceId].content = ret.content
+    this.items[projectSpaceId].formattedContent = ret.formattedContent
+
+    return ret
   }
 
   async getContentBlocks (projectSpaceId, language) {
@@ -597,54 +614,66 @@ export class ItemService {
       // Skip the language space itself
       if (contentRoom.room_id === languageSpaces[language]) return
 
+      const cached = this.contents.find(({ id }) => id === contentRoom.room_id)
+
+      if (cached) {
+        result[contentRoom.name.substring(0, contentRoom.name.indexOf('_'))] = {
+          template: cached.template,
+          content: cached.content,
+          formatted_content: cached.formatted_content
+        }
+      } else {
       // console.log(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`)
-      // Get the last message of the current content room
-      const lastMessage = (await this.httpService.axiosRef(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`, {
-        method: 'GET',
-        headers: { Authorization: 'Bearer ' + this.configService.get('matrix.access_token') },
-        params: {
+        // Get the last message of the current content room
+        const lastMessage = (await this.httpService.axiosRef(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`, {
+          method: 'GET',
+          headers: { Authorization: 'Bearer ' + this.configService.get('matrix.access_token') },
+          params: {
           // @TODO Skip deleted messages
-          limit: 1,
-          dir: 'b',
-          // Only consider m.room.message events
-          filter: JSON.stringify({ types: ['m.room.message'] })
-        }
-      })).data.chunk[0]
+            limit: 1,
+            dir: 'b',
+            // Only consider m.room.message events
+            filter: JSON.stringify({ types: ['m.room.message'] })
+          }
+        })).data.chunk[0]
 
-      if (!lastMessage) return
+        if (!lastMessage) return
 
-      const type = contentRoom.name.substring(contentRoom.name.indexOf('_') + 1)
-      const content = (() => {
-        switch (type) {
-          case 'audio':
-          case 'file':
-          case 'image':
-            return matrixClient.mxcUrlToHttp(lastMessage.content.url)
-          default: return lastMessage.content.body
-        }
-      })()
-      const formattedContent = (() => {
-        switch (type) {
+        const template = contentRoom.name.substring(contentRoom.name.indexOf('_') + 1)
+        const content = (() => {
+          switch (template) {
+            case 'audio':
+            case 'file':
+            case 'image':
+              return matrixClient.mxcUrlToHttp(lastMessage.content.url)
+            default: return lastMessage.content.body
+          }
+        })()
+        const formattedContent = (() => {
+          switch (template) {
           // For text, ul and ol we just return whatever's stored in the Matrix event's formatted_body
-          case 'text':
-          case 'ul':
-          case 'ol':
-            return lastMessage.content.formatted_body
-          // For all other types we render the HTML using the corresponding Handlebars template in /views/contentBlocks
-          default: return Handlebars.compile(fs.readFileSync(join(__dirname, '..', 'views', 'contentBlocks', `${type}.hbs`), 'utf8'))({
-            content,
-            matrixEventContent: lastMessage.content
-          })
+            case 'text':
+            case 'ul':
+            case 'ol':
+              return lastMessage.content.formatted_body
+              // For all other types we render the HTML using the corresponding Handlebars template in /views/contentBlocks
+            default: return Handlebars.compile(fs.readFileSync(join(__dirname, '..', 'views', 'contentBlocks', `${template}.hbs`), 'utf8'))({
+              content,
+              matrixEventContent: lastMessage.content
+            })
+          }
+        })()
+        const cachedRoom = { id: contentRoom.room_id, parent: projectSpaceId, name: contentRoom.name, template, content, formatted_content: formattedContent }
+        this.contents.push(cachedRoom)
+        // Append this content block's data to our result set
+        result[contentRoom.name.substring(0, contentRoom.name.indexOf('_'))] = {
+          template,
+          content,
+          formatted_content: formattedContent
         }
-      })()
-
-      // Append this content block's data to our result set
-      result[contentRoom.name.substring(0, contentRoom.name.indexOf('_'))] = {
-        type,
-        content,
-        formatted_content: formattedContent
       }
-    }))
+    }
+    ))
 
     return result
   }
@@ -961,12 +990,12 @@ export class ItemService {
   }
 
   async getRenderedJson (id) {
-    const contentEN = await this.getContent(id, 'en')
-    const contentDE = await this.getContent(id, 'de')
     const abstract = this.getAbstract(id)
     const languages = {}
-    if (contentEN) languages.EN = contentEN
-    if (contentDE) languages.DE = contentDE
+
+    for await (const [i, language] of this.items[id]?.languages.entries()) {
+      languages[language.toUpperCase()] = await this.getContent(id, language)
+    }
 
     const matrixClient = createMatrixClient({
       baseUrl: this.configService.get('matrix.homeserver_base_url'),
