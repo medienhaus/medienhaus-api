@@ -37,59 +37,117 @@ export class ItemService {
       useAuthorizationHeader: true
     })
 
+    const fetchMatrixClients = []
+
+    this.configService.get('matrix.federation_fetch_bots').forEach(bot => {
+      const client = createMatrixClient({
+        baseUrl: bot.homeserver_base_url,
+        accessToken: bot.access_token,
+        userId: bot.user_id,
+        useAuthorizationHeader: true
+      })
+      fetchMatrixClients.push(client)
+    })
+
     let batchCounter = 0
 
-    async function getBatch (spaceId, options, batch, hirachy) {
+    async function getBatch (spaceId, options, batch, hirachy, client) {
       batchCounter++
-      Logger.log('batch:\t' + batchCounter)
-      // console.log(await matrixClient.getRoomHierarchy("!YCztLjuiNnMHWFPUVP:stechlin-institut.ruralmindshift.org", options.max, options.depth))
-      const hierarchyBatch = batch ? await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth, false, batch) : await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth)
-      //! hierarchyBatch.next_batch ? hirachy :
+      Logger.log('batch:\t' + batchCounter + '\tid: ' + spaceId + '\tclient: ' + client.credentials?.userId)
+      // const hierarchyBatch = batch ? await client.getRoomHierarchy(spaceId, options.max, options.depth, false, batch) : await client.getRoomHierarchy(spaceId, options.max, options.depth)
+      let hierarchyBatch
+      if (batch) {
+       // console.log('a')
+        hierarchyBatch = await client.getRoomHierarchy(spaceId, options.max, options.depth, false, batch).catch(async (e) => {
+          if (e?.errcode === 'M_FORBIDDEN') {
+            const newClient = _getNewClient(client)
+           // console.log('a --------new-----')
+            // console.log(newClient)
+            if (newClient) {
+              const getMoreRooms = await getBatch(spaceId, options, hierarchyBatch?.next_batch, hirachy, newClient)
+            }
+          }
+        })
+      } else {
+        hierarchyBatch = await client.getRoomHierarchy(spaceId, options.max, options.depth, false).catch(async (e) => {
+       //   console.log('c')
+          if (e?.errcode === 'M_FORBIDDEN') {
+            const newClient = _getNewClient(client)
+          //  console.log('b --------new-----')
+            // console.log(newClient)
+            if (newClient) {
+              const getMoreRooms = await getBatch(spaceId, options, hierarchyBatch?.next_batch, hirachy, newClient)
+              //console.log(getMoreRooms)
+            }
+          }
+        })
+      }
+      // if (spaceId === '!eZWsgHyERuRFKHFobY:rfws.de' && client.credentials?.userId === '@dev-bot:rfws.de') {
+      //   console.log(hierarchyBatch)
+      // }
+      if (hierarchyBatch) {
+        // hack until getRoomHierarchy will also return federated ones
+        const space = hierarchyBatch?.rooms.find(r => r.room_id === spaceId)
+        if (space) {
+          // hierarchyBatch?.rooms[spaceId]?.children_state?.forEach(child => {
+          for await (const [i, child] of space?.children_state?.entries()) {
+            if (child.type === 'm.space.child' && child.room_id === spaceId && !hierarchyBatch?.rooms.find(r => r.room_id === child.state_key)) {
+              const a = await getBatch(child.state_key, options, null, hirachy, client)
+              console.log('pling')
+              // hierarchyBatch.rooms.push({ room_id: child.state_key, name: '', topic: '' })
+            }
+          }
+        }
+
+        hierarchyBatch.rooms.forEach(room => {
+          room.client = client
+        })
+      } else {
+        hierarchyBatch = {}
+        hierarchyBatch.rooms = []
+      }
+
       hirachy.push(...hierarchyBatch.rooms)
       if (!hierarchyBatch?.next_batch) {
         return hirachy
       } else {
-        const getMoreRooms = await getBatch(spaceId, options, hierarchyBatch?.next_batch, hirachy)
-      //  console.log(getMoreRooms)
+        console.log('more')
+        const getMoreRooms = await getBatch(spaceId, options, hierarchyBatch?.next_batch, hirachy, client)
       }
       return hirachy
     }
 
+    function _getNewClient (client) {
+      const index = fetchMatrixClients.findIndex(c => client.http.opts.accessToken === c.http.opts.accessToken)
+      if (index < fetchMatrixClients.length) {
+        return fetchMatrixClients[index + 1]
+      }
+    }
+
     async function getAllSpaces (spaceId, options) {
-      //  let hierarchy = {}
-
-      // const hierarchy = await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth)
-
       const hierarchy = {}
 
-      hierarchy.rooms = await getBatch(spaceId, options, false, [])
+      // console.log(_getNewClient)
 
-      //  const batch1 = await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth, false)
-
-      //  console.log(batch1.next_batch)
-
-      //  const batch2 =  await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth, false, batch1.next_batch)
-
-      //  console.log(batch2)
-
-      //    console.log(newHirachy)
+      hierarchy.rooms = await getBatch(spaceId, options, false, [], matrixClient)
       const ret = {}
 
+      console.log(':::::::::::::::::::::')
       hierarchy?.rooms.forEach(space => {
+        console.log(space.room_id + '\t' + space?.client.http.opts.accessToken)
         ret[space.room_id] = space
       })
       Logger.log(Object.keys(ret).length)
       for await (const [i, space] of hierarchy?.rooms.entries()) {
-        // await Promise.all(hierarchy?.rooms.map(async (space) => {
-
-        const stateEvents = await matrixClient.roomState(space?.room_id).catch((e) => { console.log(space?.room_id) })
+        const stateEvents = await space.client.roomState(space?.room_id).catch((e) => { console.log(space?.room_id) })
         if (stateEvents?.some(state => state.type === 'dev.medienhaus.meta')) {
           ret[space?.room_id].stateEvents = stateEvents
         }
         await new Promise(r => setTimeout(r, 1))
         Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
-      // }))
       }
+      // console.log('-----')
+      // console.log(ret)
       return ret
     }
 
@@ -107,7 +165,7 @@ export class ItemService {
         })
         const metaEvent = _.find(space.stateEvents, { type: 'dev.medienhaus.meta' })
         // if (filter.some(f => f === metaEvent?.content?.type)) { return { name: space.name, room_id: space.room_id, type: metaEvent?.content?.type, children: children } }
-        return { name: space.name, room_id: space.room_id, id: space.room_id, type: metaEvent?.content?.type, template: metaEvent?.content?.template, children: children }
+        return { name: space?.name, room_id: space.room_id, id: space.room_id, type: metaEvent?.content?.type, template: metaEvent?.content?.template, children: children }
       }
     }
 
@@ -832,7 +890,7 @@ export class ItemService {
       }))
     } else {
       // console.log(this.getContent(ret.id, 'en'))
-      //ret.render = await this.getContent(ret.id, 'en') // commented out dont know why this is there
+      // ret.render = await this.getContent(ret.id, 'en') // commented out dont know why this is there
     }
 
     return ret

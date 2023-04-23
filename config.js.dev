@@ -1,0 +1,82 @@
+/* eslint-disable import/no-anonymous-default-export */
+export default () => ({
+  matrix: {
+    homeserver_base_url: 'https://dev.medienhaus.udk-berlin.de',
+    user_id: '@robert-root:dev.medienhaus.udk-berlin.de',
+    access_token: 'syt_cm9iZXJ0LXJvb3Q_AIbBsVwMoypaatrwcSaP_4ZLWzK',
+    root_context_space_id: '!PnXirIjieZAwhtFtvy:dev.medienhaus.udk-berlin.de',
+    federation_fetch_bots: [
+      {
+        homeserver_base_url: 'https://dev.medienhaus.udk-berlin.de',
+        user_id: '@robert-root:dev.medienhaus.udk-berlin.de',
+        access_token: 'syt_cm9iZXJ0LXJvb3Q_AIbBsVwMoypaatrwcSaP_4ZLWzK'
+      },
+      {
+        homeserver_base_url: 'https://medienhaus.udk-berlin.de',
+        user_id: '@dev-bot:medienhaus.udk-berlin.de',
+        access_token: 'syt_ZGV2LWJvdA_eivSRsqAPLRXPhPbeijc_1OnVaK'
+      },
+      {
+        homeserver_base_url: 'https://matrix.rfws.de',
+        user_id: '@dev-bot:rfws.de',
+        access_token: 'syt_ZGV2LWJvdA_VcVXufOOacXGIpRZOsyO_0LxD8D'
+      }
+
+    ]
+  },
+  fetch: {
+    depth: 500,
+    max: 10000
+  },
+  application: {
+    name: 'ruralmindhsift api',
+    api_name: 'ruralmindhsift-api',
+    standards: [
+      {
+        name: 'dev.medienhaus.meta',
+        version: '1.1'
+      },
+      {
+        name: 'dev.medienhaus.allocation',
+        version: '0.1'
+      },
+      {
+        name: 'dev.medienhaus.order',
+        version: '0.1'
+      }
+    ]
+  },
+  attributable: {
+    spaceTypes: {
+      item: [
+        'item',
+        'resource',
+        'article',
+        'event',
+        'poi',
+        'content',
+        'temperature',
+        'humidity'
+      ],
+      context: [
+        'context',
+        'category',
+        'project',
+        'organization',
+        'institutions',
+        'institution',
+        'year',
+        'resident',
+        'structure-element'
+      ],
+      content: [
+        'lang',
+        'headline',
+        'text',
+        'ul',
+        'ol',
+        'quote'
+      ]
+    }
+  }
+})
