@@ -260,7 +260,7 @@ export class ItemService {
         published: published,
         children: children,
         allocation: { physical: allocationEvent?.content?.physical, temporal: allocationEvent?.content?.temporal },
-        tags: tagEvent?.content?.tags,
+        tags: tagEvent?.content?.tags ? tagEvent?.content?.tags : tagEvent?.content,
         thumbnail: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'scale') : '',
         thumbnail_full_size: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url) : ''
       }
@@ -569,7 +569,7 @@ export class ItemService {
       // Skip the language space itself
       if (contentRoom.room_id === languageSpaces[language]) return
 
-      console.log(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`)
+     // console.log(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`)
       // Get the last message of the current content room
       const lastMessage = (await this.httpService.axiosRef(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`, {
         method: 'GET',
@@ -696,7 +696,7 @@ export class ItemService {
     if (id?.charAt(0) === '@') return this.getAbstractUser(id) // check if the requested Id is a user instead of a room
 
     const space = this._findSpace(id)
-    console.log(space)
+   // console.log(space)
     if (!space) return
 
     const rawSpace = _.find(this._allRawSpaces, { room_id: id })
