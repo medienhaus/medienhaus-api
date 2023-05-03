@@ -10,7 +10,6 @@ import { join } from 'path'
 import moment from 'moment'
 import { template } from 'lodash'
 
-
 @Injectable()
 @Dependencies(ConfigService, HttpService)
 export class ItemService {
@@ -108,7 +107,6 @@ export class ItemService {
           if (childrenState.state_key !== lastId) {
             ret = generateStructure(spaces, childrenState.state_key, structure, spaceId)
           }
-
 
           if (ret) {
             if (_.find(_.find(spaces, space => space.room_id === ret.room_id).stateEvents, { type: 'dev.medienhaus.meta' })) {
@@ -1071,6 +1069,14 @@ export class ItemService {
 
   /// ////// GRAPHQL
 
+  _findSpacesByUserId (userId) {
+    return _.filter(this.allSpaces, (space) => {
+      if (_.find(space.authors, { id: userId })) {
+        return space
+      }
+    })
+  }
+
   getServer (serverUrl) {
     const server = _.find(this.servers, ({ url }) => url === serverUrl)
     if (server) {
@@ -1083,6 +1089,10 @@ export class ItemService {
     const user = _.find(this.users, ({ id }) => id === userId)
     if (user) {
       user.server = this.getServer(user.id.split(':')[1])
+      const userSpaces = this._findSpacesByUserId(userId)
+      user.item = _.filter(userSpaces, { type: 'item' })
+      user.context = _.filter(userSpaces, { type: 'context' })
+      user.content = _.filter(userSpaces, { type: 'content' })
     }
     return user
   }
