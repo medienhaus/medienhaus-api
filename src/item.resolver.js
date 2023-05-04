@@ -13,13 +13,13 @@ export class ItemResolver {
 
   @Query()
   @Bind(Args())
-  async spaces ({ template, type }) {
+  async entries ({ template, type }) {
     return this.itemService.convertSpaces(this.itemService.getSpaces(template, type))
   }
 
   @Query()
   @Bind(Args())
-  async space ({ id }) {
+  async entry ({ id }) {
     return this.itemService.convertSpace(id)
   }
 
@@ -28,21 +28,47 @@ export class ItemResolver {
   //  CONTEXT
 
   @Query()
+  @Bind(Args())
+  async context ({ id }) {
+    if (!id) return {}
+    const space = this.itemService.convertSpace(id)
+    if (space && space?.type === 'context') {
+      return space
+    } else {
+      return {}
+    }
+  }
+
+  @Query()
   async contexts () {
     return this.itemService.getSpaces(null, 'context')
   }
 
-  // @Query()
-  // @Bind(Args())
-  // async context ({ id }) {
-  //   return this.itemService.getUser(id)
-  // }
-
   //  ITEM
 
   @Query()
-  async items () {
-    return this.itemService.getSpaces(null, 'item')
+  @Bind(Args())
+  async items ({ pagination, start = 0, offset }) {
+    const spaces = this.itemService.getSpaces(null, 'item')
+    if (!pagination) return spaces
+
+    if (offset) {
+      return spaces.slice(start, offset)
+    } else {
+      return spaces.slice(start)
+    }
+  }
+
+  @Query()
+  @Bind(Args())
+  async item ({ id }) {
+    if (!id) return {}
+    const space = this.itemService.convertSpace(id)
+    if (space && space?.type === 'item') {
+      return space
+    } else {
+      return {}
+    }
   }
 
   // @Query()
@@ -56,6 +82,12 @@ export class ItemResolver {
   @Query()
   async contents () {
     return this.itemService.contents
+  }
+
+  @Query()
+  @Bind(Args())
+  async content ({ id }) {
+    return {}
   }
 
   // @Query()
