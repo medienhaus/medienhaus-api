@@ -144,15 +144,21 @@ export class Server {
 }
 
 export abstract class IQuery {
-    abstract spaces(template?: Nullable<string>, type?: Nullable<string>): Nullable<Nullable<Entry>[]> | Promise<Nullable<Nullable<Entry>[]>>;
+    abstract entries(template?: Nullable<string>, type?: Nullable<string>): Nullable<Nullable<Entry>[]> | Promise<Nullable<Nullable<Entry>[]>>;
 
-    abstract space(id: string): Nullable<Entry> | Promise<Nullable<Entry>>;
+    abstract entry(id: string): Nullable<Entry> | Promise<Nullable<Entry>>;
 
     abstract items(): Nullable<Nullable<Item>[]> | Promise<Nullable<Nullable<Item>[]>>;
 
+    abstract item(id: string): Nullable<Item> | Promise<Nullable<Item>>;
+
     abstract contexts(): Nullable<Nullable<Context>[]> | Promise<Nullable<Nullable<Context>[]>>;
 
+    abstract context(id: string): Nullable<Context> | Promise<Nullable<Context>>;
+
     abstract contents(): Nullable<Nullable<Content>[]> | Promise<Nullable<Nullable<Content>[]>>;
+
+    abstract content(id: string): Nullable<Content> | Promise<Nullable<Content>>;
 
     abstract servers(): Nullable<Nullable<Server>[]> | Promise<Nullable<Nullable<Server>[]>>;
 

@@ -181,18 +181,20 @@ type Server {
 
 type Query {
 
-    #spaces: [Entry]
-    spaces(template:String,type:String): [Entry]
-
-    space(id: String!): Entry
+    #Entries: [Entry]
+    entries(template:String,type:String): [Entry]
+    entry(id: String!): Entry
 
     items: [Item]
+    item(id: String!): Item
     # item(id: String!): Item
 
     contexts: [Context]
+    context(id: String!): Context
     # context(id: String!): Context
 
     contents: [Content]
+    content(id: String!): Content
     # content(id: String!): Content
 
     servers: [Server]
