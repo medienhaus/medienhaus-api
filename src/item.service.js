@@ -269,6 +269,8 @@ export class ItemService {
 
       const avatar = _.find(stateEvents, { type: 'm.room.avatar' })
 
+      const thumbnailMxc = typeof avatar?.content?.url === 'object' ? avatar?.content?.url?.content_uri : avatar?.content?.url
+
       if (metaEvent?.content?.deleted) return
       return {
         name: spaceName,
@@ -285,8 +287,8 @@ export class ItemService {
         children,
         allocation: { physical: allocationEvent?.content?.physical, temporal: allocationEvent?.content?.temporal },
         tags: tagEvent?.content?.tags,
-        thumbnail: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'scale') : '',
-        thumbnail_full_size: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url) : ''
+        thumbnail: thumbnailMxc ? matrixClient.mxcUrlToHttp(thumbnailMxc, 800, 800, 'scale') : '',
+        thumbnail_full_size: thumbnailMxc ? matrixClient.mxcUrlToHttp(thumbnailMxc) : ''
       }
     }
 
@@ -1159,6 +1161,8 @@ export class ItemService {
     space.item = types.item
     space.context = types.context
     space.content = types.content
+
+    console.log(space)
 
     return {
       id: space?.id,
