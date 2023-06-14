@@ -36,8 +36,6 @@ export class ItemService {
       userId: this.configService.get('matrix.user_id'),
       useAuthorizationHeader: true
     })
-
-
   }
 
   @Interval(30 * 60 * 1000) // Call this every 30 minutes
@@ -1153,11 +1151,23 @@ export class ItemService {
 
   convertSpace (id, space) {
     if (!space) space = this._findSpace(id)
+    if (!space) {
+      return
+    }
+    const types = this._abstractTypes(this._sortChildren(space.children))
+
+    space.item = types.item
+    space.context = types.context
+    space.content = types.content
+
     return {
       id: space?.id,
       name: space?.name,
-      type: space?.name,
+      type: space?.type,
       template: space?.template,
+      item: _.map(space?.item, item => this.convertSpace(item.id)),
+      context: _.map(space?.context, context => this.convertSpace(context.id)),
+      content: _.map(space?.content, content => this.convertSpace(content.id)),
       thumbnail: space?.thumbnail,
       thumbnail_full_size: space?.thumbnail_full_size,
       parents: _.map(space?.parents, parent => this.convertSpace(this._findSpace(parent?.room_id))),
@@ -1166,7 +1176,6 @@ export class ItemService {
   }
 
   convertOrigin (id, origin) {
-    _.map(origin.authors, author => console.log(this.getServer(author.id?.split(':')[1])))
     const ret = {
       application: [{ name: '' }], // needs to be implemented in the future, is not cached from the dev.medienhaus.meta event so far
       server: _.map(origin.authors, author => this.getServer(author?.id?.split(':')[1])),

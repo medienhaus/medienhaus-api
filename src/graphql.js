@@ -71,6 +71,8 @@ export class Entry implements Space {
     name?: Nullable<string>;
     parents?: Nullable<Nullable<Entry>[]>;
     content?: Nullable<Nullable<Content>[]>;
+    item?: Nullable<Nullable<Item>[]>;
+    context?: Nullable<Nullable<Context>[]>;
     thumbnail?: Nullable<string>;
     thumbnail_full_size?: Nullable<string>;
     allocation?: Nullable<Allocation>;
@@ -99,8 +101,9 @@ export class Context implements Space {
     type?: Nullable<string>;
     template?: Nullable<string>;
     name?: Nullable<string>;
-    item?: Nullable<Nullable<Item>[]>;
     parents?: Nullable<Nullable<Entry>[]>;
+    item?: Nullable<Nullable<Item>[]>;
+    context?: Nullable<Nullable<Context>[]>;
     content?: Nullable<Nullable<Content>[]>;
     thumbnail?: Nullable<string>;
     thumbnail_full_size?: Nullable<string>;

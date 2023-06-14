@@ -102,6 +102,8 @@ type Entry implements Space {
     name: String
     parents: [Entry]
     content: [Content]
+    item: [Item]
+    context: [Context]
     thumbnail: String
     thumbnail_full_size: String
     allocation: Allocation
@@ -132,8 +134,9 @@ type Context  implements Space  {
     type: String
     template: String
     name: String,
-    item: [Item]
     parents: [Entry]
+    item: [Item]
+    context: [Context]
     content: [Content]
     thumbnail: String
     thumbnail_full_size: String
