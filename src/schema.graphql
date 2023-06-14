@@ -185,11 +185,12 @@ type Query {
     entries(template:String,type:String): [Entry]
     entry(id: String!): Entry
 
-    items: [Item]
+    
+    items(template:String, pagination:Boolean, offset:Int, start:Int): [Item]
     item(id: String!): Item
     # item(id: String!): Item
 
-    contexts: [Context]
+    contexts(template:String): [Context]
     context(id: String!): Context
     # context(id: String!): Context
 

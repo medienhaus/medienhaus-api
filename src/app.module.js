@@ -24,7 +24,8 @@ import { join } from 'path'
         path: join(process.cwd(), 'src/graphql.js'),
         outputAs: 'class'
       },
-      playground: true
+      playground: true,
+      introspection: true
     }),
     ScheduleModule.forRoot(),
     HttpModule
@@ -37,7 +38,7 @@ import { join } from 'path'
       inject: [ConfigService, HttpService],
       useFactory: async (configService, httpService) => {
         const x = new ItemService(configService, httpService)
-        await x.fetch()
+        if (x.configService.get('fetch.initalyLoad')) await x.fetch()
         return x
       }
     },

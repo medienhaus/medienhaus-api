@@ -27,12 +27,12 @@ export class ItemService {
     this.servers = []
     this.users = []
     this.contents = []
+
+    this.initiallyFetched = false
   }
 
   @Interval(30 * 60 * 1000) // Call this every 30 minutes
   async fetch () {
-    Logger.log('Fetching items...')
-
     const configService = this.configService
     const httpService = this.httpService
 
@@ -42,6 +42,10 @@ export class ItemService {
       userId: this.configService.get('matrix.user_id'),
       useAuthorizationHeader: true
     })
+
+    if (!this.configService.get('fetch.autoFetch') && this.initiallyFetched) return
+
+    Logger.log('Fetching items...')
 
     let batchCounter = 0
 
@@ -55,6 +59,8 @@ export class ItemService {
       if (!hierarchyBatch?.next_batch) {
         return hirachy
       } else {
+        await new Promise(r => setTimeout(r, 100))
+
         const getMoreRooms = await getBatch(spaceId, options, hierarchyBatch?.next_batch, hirachy)
       //  console.log(getMoreRooms)
       }
@@ -225,10 +231,12 @@ export class ItemService {
           topicDe = de[0] ? de[0].topic : ''
           // fetch authors aka. collaborators
           authorNames = []
-
-          for (const [key, value] of Object.entries(joinedMembers?.joined)) {
-            authorNames.push(value.display_name)
+          if(joinedMembers) {
+            for (const [key, value] of Object.entries(joinedMembers?.joined)) {
+              authorNames.push(value.display_name)
+            }
           }
+
         } else {
           if (!configService.get('attributable.spaceTypes.context').some(f => f === metaEvent?.content?.template)) {
             published = 'draft'
@@ -314,6 +322,8 @@ export class ItemService {
         this.servers.push({ url: spaceUrl })
       }
     })
+
+    if (!this.initiallyFetched) this.initiallyFetched = true
   }
 
   applyFilterToStructure (structure_, filter, ret) {

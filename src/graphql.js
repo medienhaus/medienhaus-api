@@ -148,11 +148,11 @@ export abstract class IQuery {
 
     abstract entry(id: string): Nullable<Entry> | Promise<Nullable<Entry>>;
 
-    abstract items(): Nullable<Nullable<Item>[]> | Promise<Nullable<Nullable<Item>[]>>;
+    abstract items(template?: Nullable<string>, pagination?: Nullable<boolean>, offset?: Nullable<number>, start?: Nullable<number>): Nullable<Nullable<Item>[]> | Promise<Nullable<Nullable<Item>[]>>;
 
     abstract item(id: string): Nullable<Item> | Promise<Nullable<Item>>;
 
-    abstract contexts(): Nullable<Nullable<Context>[]> | Promise<Nullable<Nullable<Context>[]>>;
+    abstract contexts(template?: Nullable<string>): Nullable<Nullable<Context>[]> | Promise<Nullable<Nullable<Context>[]>>;
 
     abstract context(id: string): Nullable<Context> | Promise<Nullable<Context>>;
 

@@ -40,20 +40,28 @@ export class ItemResolver {
   }
 
   @Query()
-  async contexts () {
-    return this.itemService.getSpaces(null, 'context')
+  @Bind(Args())
+  async contexts ({ pagination, start = 0, offset, template }) {
+    const spaces = this.itemService.getSpaces(template, 'context')
+    if (!pagination) return spaces
+
+    if (offset) {
+      return spaces.slice(start, start + offset)
+    } else {
+      return spaces.slice(start)
+    }
   }
 
   //  ITEM
 
   @Query()
   @Bind(Args())
-  async items ({ pagination, start = 0, offset }) {
-    const spaces = this.itemService.getSpaces(null, 'item')
+  async items ({ pagination, start = 0, offset, template }) {
+    const spaces = this.itemService.getSpaces(template, 'item')
     if (!pagination) return spaces
 
     if (offset) {
-      return spaces.slice(start, offset)
+      return spaces.slice(start, start + offset)
     } else {
       return spaces.slice(start)
     }
