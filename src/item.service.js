@@ -279,6 +279,7 @@ export class ItemService {
         type: metaEvent?.content?.type,
         topicDe,
         languages: languageSpaces?.map(lang => lang.name),
+        descriptions: languageSpaces?.map(lang => { return { id: lang?.room_id, name: lang?.name, topic: lang?.topic } }),
         parent: parent.name,
         parentSpaceId: parent.room_id,
         parents,
@@ -1162,7 +1163,6 @@ export class ItemService {
     space.context = types.context
     space.content = types.content
 
-    console.log(space)
 
     return {
       id: space?.id,
@@ -1172,6 +1172,7 @@ export class ItemService {
       item: _.map(space?.item, item => this.convertSpace(item.id)),
       context: _.map(space?.context, context => this.convertSpace(context.id)),
       content: _.map(space?.content, content => this.convertSpace(content.id)),
+      description: space?.descriptions?.map(desc => this.convertDescription(desc?.id, desc)),
       thumbnail: space?.thumbnail,
       thumbnail_full_size: space?.thumbnail_full_size,
       parents: _.map(space?.parents, parent => this.convertSpace(this._findSpace(parent?.room_id))),
@@ -1190,7 +1191,11 @@ export class ItemService {
   }
 
   convertDescription (id, description) {
-
+    const ret = {
+      language: description.name?.toUpperCase(),
+      content: description?.topic
+    }
+    return ret
   }
 
   convertAllocation (id, allocation) {
