@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { AppController } from './app.controller'
 import { ApiV2Controller } from './api_v2.controller'
+import { ApiPostController } from './api_post.controller'
 import { AppService } from './app.service'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import configuration from '../config'
@@ -30,7 +31,7 @@ import { join } from 'path'
     ScheduleModule.forRoot(),
     HttpModule
   ],
-  controllers: [AppController, ApiV2Controller],
+  controllers: [AppController, ApiV2Controller, ApiPostController],
   providers: [
     AppService,
     {

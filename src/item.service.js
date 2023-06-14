@@ -29,6 +29,15 @@ export class ItemService {
     this.contents = []
 
     this.initiallyFetched = false
+
+    this.matrixClient = createMatrixClient({
+      baseUrl: this.configService.get('matrix.homeserver_base_url'),
+      accessToken: this.configService.get('matrix.access_token'),
+      userId: this.configService.get('matrix.user_id'),
+      useAuthorizationHeader: true
+    })
+
+
   }
 
   @Interval(30 * 60 * 1000) // Call this every 30 minutes
@@ -231,12 +240,11 @@ export class ItemService {
           topicDe = de[0] ? de[0].topic : ''
           // fetch authors aka. collaborators
           authorNames = []
-          if(joinedMembers) {
+          if (joinedMembers) {
             for (const [key, value] of Object.entries(joinedMembers?.joined)) {
               authorNames.push(value.display_name)
             }
           }
-
         } else {
           if (!configService.get('attributable.spaceTypes.context').some(f => f === metaEvent?.content?.template)) {
             published = 'draft'
@@ -1220,166 +1228,181 @@ export class ItemService {
   /// //// POST
 
   async postFetch (id, options) {
-    this._updatedId(id, options)
+    return await this._updatedId(id, options)
   }
 
-  _updatedId (id, options) {
-    const space = this._findSpace(id)
-    // console.log(space)
-    // return this._allRawSpaces[id]
-    // console.log(this.fetch().getBatch())
-    // return await this.fetch().getBatch(id, { max: 100, depth: 10 }, false, [])
-    if (space) {
-      return this._applyUpdate(id, space)
-    } else {
-      // console.log('222')
-    }
-  }
+  async deleteFetch (id, options) {
+    const spaceAbstract = this.getAbstract(id)
+    const spaceRaw = this._allRawSpaces[id]
+    const spaceItems = this.items[id]
+    const spaceAllSpaces = this.allSpaces[id]
 
-  async _applyUpdate (id, oldSpace) {
-    const matrixClient = createMatrixClient({
-      baseUrl: this.configService.get('matrix.homeserver_base_url'),
-      accessToken: this.configService.get('matrix.access_token'),
-      userId: this.configService.get('matrix.user_id'),
-      useAuthorizationHeader: true
-    })
-
-    if (!oldSpace) oldSpace = this._findSpace(id)
-    const oldRawSpace = _.find(this._allRawSpaces, { room_id: id })
-    const oldTree = this._findSubTree(this.getStructure()[this.configService.get('matrix.root_context_space_id')], id)
-
-    const newSpace = await this._getBatch(id, { max: 1000, depth: 1 }, false, [], matrixClient)
-
-    const stateEvents = await matrixClient.roomState(id).catch(() => {})
-    const extendedData = await this._getStateData(stateEvents, id, rawSpaces)
-    // console.log(extendedData)
-
-    // console.log(newSpace)
-  }
-
-  async _getBatch (spaceId, options, batch, hirachy, matrixClient) {
-    // console.log(await matrixClient.getRoomHierarchy("!YCztLjuiNnMHWFPUVP:stechlin-institut.ruralmindshift.org", options.max, options.depth))
-    const hierarchyBatch = batch ? await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth, false, batch) : await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth)
-    //! hierarchyBatch.next_batch ? hirachy :
-    hirachy.push(...hierarchyBatch.rooms)
-    if (!hierarchyBatch?.next_batch) {
-      return hirachy
-    } else {
-      const getMoreRooms = await this._getBatch(spaceId, options, hierarchyBatch?.next_batch, hirachy)
-      //  console.log(getMoreRooms)
-    }
-    return hirachy
-  }
-
-  async _getStateData (stateEvents, spaceId, rawSpaces, matrixClient) {
-    const metaEvent = _.find(stateEvents, { type: 'dev.medienhaus.meta' })
-    //   if (!metaEvent) console.log(spaceId)
-    if (!metaEvent) return
-    const nameEvent = _.find(stateEvents, { type: 'm.room.name' })
-    if (!nameEvent) return
-    const allocationEvent = _.find(stateEvents, { type: 'dev.medienhaus.allocation' })
-    const joinRulesEvent = _.find(stateEvents, { type: 'm.room.join_rules' })
-
-    const parent = {}
-
-    _.forEach(rawSpaces, space => {
-      const children = (_.filter(space.stateEvents, event => event.type === 'm.space.child'))
-
-      _.forEach(children, child => {
-        if (child?.state_key === spaceId) {
-          parent.name = space.name
-          parent.room_id = space.room_id
-        }
-      })
-    })
-
-    let published
-    let topicEn
-    let topicDe
-    let authorNames
-    let type
-    const members = []
-
-    const children = []
-
-    const joinedMembers = await matrixClient.getJoinedRoomMembers(spaceId).catch(() => {})
-
-    for (const [key, value] of Object.entries(joinedMembers?.joined)) {
-      members.push({ id: key, name: value.display_name })
-    }
-
-    if (this.configService.get('attributable.spaceTypes.item').some(f => f === metaEvent?.content?.template)) {
-      type = 'item'
-    } else if (this.configService.get('attributable.spaceTypes.context').some(f => f === metaEvent?.content?.template)) {
-      type = 'context'
-    }
-
-    if (metaEvent?.content?.type !== 'lang' && !(this.configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
-      if (
-        this.configService.get('attributable.spaceTypes.item').some(f => f === metaEvent?.content?.template) &&
-      (metaEvent.content.published ? metaEvent.content.published === 'public' : (joinRulesEvent && joinRulesEvent.content.join_rule === 'public'))
-      ) {
-        published = 'public'
-
-        const languageSpaceIds = (stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key))
-
-        const languageSpaces = languageSpaceIds.map(languageSpace => {
-          return _.find(rawSpaces, room => room.room_id === languageSpace)
-        })
-
-        // fetch descriptions
-        const en = languageSpaces.filter(room => room.name === 'en')
-        topicEn = en[0].topic || undefined
-        const de = languageSpaces.filter(room => room.name === 'de')
-        topicDe = de[0].topic || undefined
-        // fetch authors aka. collaborators
-        authorNames = []
-
-        for (const [key, value] of Object.entries(joinedMembers?.joined)) {
-          authorNames.push(value.display_name)
-        }
-      } else {
-        if (!this.configService.get('attributable.spaceTypes.context').some(f => f === metaEvent?.content?.template)) {
-          published = 'draft'
-        } else {
-          const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
-            const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
-            return r
-          }
-          )
-
-          _.forEach(potentialChildren, child => {
-            if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
-              children.push(child.room_id)
-            }
-          })
-        }
-      }
-    } else {
+    if (!spaceRaw || !spaceAbstract || !spaceAllSpaces) {
       return
     }
 
-    const spaceName = nameEvent.content.name
+    // TODO: adding auth function
 
-    const avatar = _.find(stateEvents, { type: 'm.room.avatar' })
-
-    if (metaEvent?.content?.deleted) return
-    return {
-      name: spaceName,
-      template: metaEvent?.content?.template,
-      topicEn,
-      type,
-      topicDe,
-      parent: parent.name,
-      parentSpaceId: parent.room_id,
-      authors: authorNames,
-      members,
-
-      published,
-      children,
-      allocation: { physical: allocationEvent?.content?.physical },
-      thumbnail: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'scale') : '',
-      thumbnail_full_size: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url) : ''
+    // checking if space is already removed at parents via synapse
+    const liveParents = await this._getChildrenOfParents(options?.parentIds)
+    if (!liveParents) return { status: 'matrix parent not found' }
+    if (liveParents?.error) return { status: '' + liveParents.error + ' not found in matrix' } //  custom error response for specific room id
+    const deleted = _.map(liveParents, parent => {
+      return parent.some(room => room === id)
+    })
+    if (deleted.some(p => p)) {
+      return { status: 'not in matrix deleted' }
     }
+
+    // modify parents
+    const parents = this._getParentsOfId(id)
+    // and stateEvents of parents
+    parents.forEach(parent => {
+      // check if purge from all parent or just specific ones
+      if (!options?.purge) {
+        if (!options?.parentIds.some(p => p === parent)) { // if parent is not included in parentIds from the call then this will not be deleted
+          return
+        }
+      }
+      //   stateEvents of parents of RawSpaces
+      if (this._allRawSpaces[parent]) {
+        this._allRawSpaces[parent]?.stateEvents.forEach((stateEvent, i) => {
+          if (stateEvent.state_key === id) {
+            this._allRawSpaces[parent].stateEvents.splice(i, 1)
+          }
+        })
+        //  modify children_state of RawSpaces
+        this._allRawSpaces[parent]?.children_state.forEach((childStateEvent, i) => {
+          if (childStateEvent.state_key === id) {
+            this._allRawSpaces[parent].children_state.splice(i, 1)
+          }
+        })
+      }
+
+      // modify children key of AllSpaces
+      if (this.allSpaces[parent]) {
+        this.allSpaces[parent]?.children.forEach((child, i) => {
+          if (child === id) {
+            this.allSpaces[parent]?.children.splice(i, 1)
+          }
+        })
+      }
+
+      // modify childre key of items
+      if (this.items[parent]) {
+        this.items[parent]?.children.forEach((child, i) => {
+          if (child === id) {
+            this.items[parent]?.children.splice(i, 1)
+          }
+        })
+      }
+    })
+
+    // modify children
+    // -> can be skipped since no entry point to deliver the children of the given id anymore
+
+    // modify tree
+    this._findAndDeleatInStrucutre(id, Object.values(this.structure)[0], [Object.keys(this.structure)[0]], options)
+
+    if (options?.purge) {
+      // purge objects of given id
+      if (this._allRawSpaces[id]) delete this._allRawSpaces[id]
+      if (this.items[id]) delete this.items[id]
+      if (this.allSpaces[id]) delete this.allSpaces[id]
+      return { status: 'purged' }
+    } else { // if not purged then modifing the parentes keys of the given id object which it got deleted from
+      if (this._allRawSpaces[id]) {
+        _.remove(this._allRawSpaces[id]?.parents, p => options?.parentIds.some(pI => p.room_id === pI))
+      }
+
+      if (this.allSpaces[id]) {
+        _.remove(this.allSpaces[id]?.parents, p => options?.parentIds.some(pI => p.room_id === pI))
+      }
+
+      if (this.items[id]) {
+        _.remove(this.items[id]?.parents, p => options?.parentIds.some(pI => p.room_id === pI))
+      }
+    }
+
+    return { status: 'deleted' }
+  }
+
+  async _getChildrenOfParents (parentIds) {
+    const parents = {}
+    for await (const [i, parent] of parentIds.entries()) {
+      const matrixReq = await this.matrixClient.getRoomHierarchy(parent, this.configService.get('fetch.max'), 1).catch(e => {})
+      if (!matrixReq) return { error: parent }
+      const children = _.map(_.filter(matrixReq?.rooms, room => parent !== room.room_id), room => room.room_id)
+      parents[parent] = children
+    }
+    return parents
+  }
+
+  _findAndDeleatInStrucutre (id, structure, path, options) {
+    _.forEach(structure?.children, child => {
+      const tmpPath = [...path]
+      tmpPath.push(child.id)
+      this._findAndDeleatInStrucutre(id, child, tmpPath, options)
+    })
+
+    if (structure.id === id) {
+      let pathWay = ''
+      path.forEach((p, i) => {
+        pathWay += "['" + p + "']" + (i < path.length - 1 ? '.children' : '') // yes I know this is fucking ugly as hell I am also hating myself for this at least a bit
+      })
+      if (options?.purge) { // if purge then delete if in any way
+        _.unset(this.structure, pathWay)
+      } else {
+        if (path.length > 0 && options?.parentIds.some(p => p === path[path.length - 2])) { // checks if the found path is part of the partentIds before deleting otherwise will skip
+          _.unset(this.structure, pathWay) // this deletes the key
+        }
+      }
+    }
+  }
+
+  async _updatedId (id, options) {
+    const space = this._findSpace(id)
+    if (space && !options.parentId) {
+      return await this._applyUpdate(id, options)
+    } else {
+      return await this._applyUpdate(options?.parentId, options)
+    }
+  }
+
+  async _applyUpdate (id, options) {
+    const startTime = Date.now()
+    const max = options.max ? options.max : this.configService.get('fetch.max')
+    const depth = options.depth ? options.depth : this.configService.get('fetch.depth')
+
+    const idsToApplyFullStaeUpdate = []
+
+    const allSpaces = await this.getAllSpacesInitial(id, { max, depth, noLog: true })
+    _.forEach(allSpaces, (spaceContent, spaceId) => {
+      idsToApplyFullStaeUpdate.push(spaceId)
+      const abstract = this.getAbstract(spaceId)
+      if (abstract?.parents) idsToApplyFullStaeUpdate.concat(abstract?.parents)
+    })
+    console.log(idsToApplyFullStaeUpdate)
+
+    console.log('Fetched ' + (Date.now() - startTime))
+    _.forEach(allSpaces, ele => {
+      this._allRawSpaces[ele.room_id] = ele
+    })
+    console.log('Fetched after ' + (Date.now() - startTime))
+    const generatedStrucute = this.generateStructure(this._allRawSpaces, this.configService.get('matrix.root_context_space_id'), {})
+    const structure = {}
+    structure[generatedStrucute.room_id] = generatedStrucute
+    console.log('Struct ' + (Date.now() - startTime))
+    this.allSpaces = await this.generateAllSpaces(this._allRawSpaces, { noLog: true }, idsToApplyFullStaeUpdate)
+    console.log('Spaces generated ' + (Date.now() - startTime))
+    this.structure = structure
+
+    const filtedObjects = _.filter(this.allSpaces, space => space.type === 'item').map(space => { return { [space.id]: space } })
+
+    filtedObjects.forEach(ele => {
+      this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
+    })
+    console.log('End ' + (Date.now() - startTime))
+    return this.getAbstract(id)
   }
 }

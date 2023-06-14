@@ -1,4 +1,4 @@
-import { Bind, Controller, Dependencies, Get, NotFoundException, HttpException, HttpStatus, Param  } from '@nestjs/common'
+import { Bind, Controller, Dependencies, Get, NotFoundException, HttpException, HttpStatus, Param } from '@nestjs/common'
 import { AppService } from './app.service'
 
 import _ from 'lodash'
@@ -10,10 +10,6 @@ export class AppController {
     this.appService = appService
     this.itemService = itemService
   }
-
-
-
-
 
   @Get('/api/v1/getSpace/:id')
   @Bind(Param())
