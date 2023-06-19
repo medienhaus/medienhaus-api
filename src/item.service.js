@@ -1221,6 +1221,13 @@ export class ItemService {
   }
 
   /// //// POST
+  _getParentsOfId (id) {
+    const idSpace = this.allSpaces[id]
+
+    if (!idSpace || !idSpace?.parents || !idSpace?.parents.length > 0) return
+
+    return idSpace?.parents.map(parent => parent.room_id)
+  }
 
   async postFetch (id, options) {
     return await this._updatedId(id, options)
@@ -1282,7 +1289,6 @@ export class ItemService {
           }
         })
       }
-
       // modify childre key of items
       if (this.items[parent]) {
         this.items[parent]?.children.forEach((child, i) => {
@@ -1324,7 +1330,7 @@ export class ItemService {
 
   async _getChildrenOfParents (parentIds) {
     const parents = {}
-    for await (const [i, parent] of parentIds.entries()) {
+    for await (const [i, parent] of parentIds?.entries()) {
       const matrixReq = await this.matrixClient.getRoomHierarchy(parent, this.configService.get('fetch.max'), 1).catch(e => {})
       if (!matrixReq) return { error: parent }
       const children = _.map(_.filter(matrixReq?.rooms, room => parent !== room.room_id), room => room.room_id)
