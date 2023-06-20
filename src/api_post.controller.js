@@ -16,6 +16,7 @@ export class ApiPostController {
   @Post('api/v2/:id/fetch')
   @Bind(Body(), Param())
   async apiPostFetch (body, params) {
+    if (!this.itemService.configService.get('interfaces.post')) throw new NotFoundException()
     const ret = await this.itemService.postFetch(params.id, { parentId: body?.parentId, depth: body?.depth, max: body?.max })
     if (!ret) throw new NotFoundException()
     return ret
@@ -24,6 +25,7 @@ export class ApiPostController {
   @Delete('api/v2/:id/fetch')
   @Bind(Body(), Param())
   async apiDeleteFetch (body, params) {
+    if (!this.itemService.configService.get('interfaces.post')) throw new NotFoundException()
     const ret = await this.itemService.deleteFetch(params.id, { parentIds: body?.parentIds, purge: body?.purge })
     if (!ret) throw new NotFoundException()
     return ret

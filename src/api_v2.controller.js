@@ -54,24 +54,6 @@ export class ApiV2Controller {
     return this.itemService.getList(id)
   }
 
-  // @Get('/api/v2/:id/filter/:filter')
-  // @Bind(Param())
-  // apiGetFiltered ({ id, filter }) {
-  //   return this.itemService.getSpace(id)
-  // }
-
-  // @Get('/api/v2/:id/filter/:filter')
-  // @Bind(Param())
-  // apiGetFiltered ({ id, filter }) {
-  //   return this.itemService.getSpace(id)
-  // }
-
-  // @Get('/api/v2/:id/filter/allocations/physical')
-  // @Bind(Param())
-  // apiGetFiltered ({ id, filter }) {
-  //   return this.itemService.getSpace(id)
-  // }
-
   @Get('/api/v2/:id/list/filter/allocation/temporal')
   @Bind(Param())
   apiGetFilteredByAllocationsTemporal ({ id }) {
