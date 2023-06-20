@@ -54,24 +54,6 @@ export class ApiV2Controller {
     return this.itemService.getList(id)
   }
 
-  // @Get('/api/v2/:id/filter/:filter')
-  // @Bind(Param())
-  // apiGetFiltered ({ id, filter }) {
-  //   return this.itemService.getSpace(id)
-  // }
-
-  // @Get('/api/v2/:id/filter/:filter')
-  // @Bind(Param())
-  // apiGetFiltered ({ id, filter }) {
-  //   return this.itemService.getSpace(id)
-  // }
-
-  // @Get('/api/v2/:id/filter/allocations/physical')
-  // @Bind(Param())
-  // apiGetFiltered ({ id, filter }) {
-  //   return this.itemService.getSpace(id)
-  // }
-
   @Get('/api/v2/:id/list/filter/allocation/temporal')
   @Bind(Param())
   apiGetFilteredByAllocationsTemporal ({ id }) {
@@ -93,7 +75,7 @@ export class ApiV2Controller {
   @Get('/api/v2/:id/render/json')
   @Bind(Param())
   apiGetRenderedJson ({ id }) {
-    return  this.itemService.getRenderedJson(id)
+    return this.itemService.getRenderedJson(id)
   }
 
   /// Stechlin Custom
@@ -102,6 +84,30 @@ export class ApiV2Controller {
   @Bind(Param())
   apiGetFullTree ({ id }) {
     return this.itemService.getFullTree(id)
+  }
+
+  @Get('/api/v2/:id/fullList')
+  @Bind(Param())
+  apiGetFullList ({ id }) {
+    return this.itemService.getFullList(id)
+  }
+
+  @Get('/api/v2/:id/fullList/filter/type/item')
+  @Bind(Param())
+  apiGetItemsOfFullListFilteredByItems ({ id }) {
+    return this.itemService.getItemsOfFullListFilteredByItems(id)
+  }
+
+  @Get('/api/v2/:id/render/d3')
+  @Bind(Param())
+  apiGetAbstractAsD3 ({ id }) {
+    return this.itemService.getD3Abstract(id)
+  }
+
+  @Get('/api/v2/:id/render/d3/fulltree')
+  @Bind(Param())
+  apiGetAbstractAsD3Fulltree ({ id }) {
+    return this.itemService.getD3FullTree(id)
   }
 
   @Post('api/v2/:id/fetch')

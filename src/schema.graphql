@@ -1,0 +1,209 @@
+
+interface Space {
+    id: String!
+    name: String
+    type: String
+    template: String
+    thumbnail: String
+    thumbnail_full_size: String
+    parents: [Entry]
+    allocation: Allocation
+    origin: Origin
+    description: [Description]
+    localDepth: String
+
+    
+
+}
+
+type Origin {
+    application: [Application]
+    server: [Server]
+    authors: [User]
+}
+
+type Description {
+    language: String!
+    content: String
+}
+
+
+"""Containting the Allocation related Metadata, if availible"""
+type Allocation {
+    physical: [Physical]
+    temporal: [Temporal]
+}
+
+type Application {
+    name: String
+}
+
+
+
+type Physical {
+    """Appname """
+    app: String
+
+    """Latitude """
+    lat: String #lat
+
+    """Longitude """
+    lng: String
+    
+    """additional informations """
+    info: String
+    
+    """radius of the lat/long """
+    radius: String
+    
+    """path of lat/long coordinates instead of a single point to create custom shapes  """
+    Path: [String]
+}
+
+type Temporal {
+    """Name of the application Interface which created this metadata"""
+    app: String!
+
+    """A unix timestamp"""
+    start: String
+
+    """A unix timestamp"""
+    end: String  
+
+    """unix timestamp"""
+    timestamp: String  
+
+    """20XX """
+    year: String
+
+    """1-12 """
+    month: String
+
+    """1-31"""
+    day: String
+
+    """0-24"""
+    hour: String
+
+    """0-60 """
+    minute: String
+
+    """0-60 """
+    second: String
+}
+
+
+# union Entry = Item | Context | Content
+
+type Entry implements Space {
+    id: String!
+    type: String
+    template: String   
+    name: String
+    parents: [Entry]
+    content: [Content]
+    item: [Item]
+    context: [Context]
+    thumbnail: String
+    thumbnail_full_size: String
+    allocation: Allocation
+    origin: Origin
+    description: [Description]
+    localDepth: String
+    
+}
+
+type Item implements Space {
+    id: String!
+    type: String
+    template: String   
+    name: String
+    parents: [Entry]
+    content: [Content]
+    thumbnail: String
+    thumbnail_full_size: String
+    allocation: Allocation
+    origin: Origin
+    description: [Description]
+    localDepth: String
+    
+}
+
+type Context  implements Space  {
+    id: String!
+    type: String
+    template: String
+    name: String,
+    parents: [Entry]
+    item: [Item]
+    context: [Context]
+    content: [Content]
+    thumbnail: String
+    thumbnail_full_size: String
+    allocation: Allocation
+    origin: Origin
+    description: [Description]
+    localDepth: String
+}
+
+type Content  implements Space  {
+    id: String!
+    type: String
+    template: String
+    name: String
+    parents: [Entry]
+    thumbnail: String
+    thumbnail_full_size: String
+    allocation: Allocation
+    origin: Origin
+    description: [Description]
+    localDepth: String
+}
+
+
+
+type User {
+    id: String!
+    name: String
+    server: Server
+    thumbnail: String
+    thumbnail_full_size: String
+    context: [Context]
+    item: [Item]
+    content: [Content]
+
+}
+
+type Server {
+    url: String!
+    users: [User]
+    context: [Context]
+    item: [Item]
+    content: [Content]
+}
+
+type Query {
+
+    #Entries: [Entry]
+    entries(template:String,type:String): [Entry]
+    entry(id: String!): Entry
+
+    
+    items(template:String, pagination:Boolean, offset:Int, start:Int): [Item]
+    item(id: String!): Item
+    # item(id: String!): Item
+
+    contexts(template:String): [Context]
+    context(id: String!): Context
+    # context(id: String!): Context
+
+    contents: [Content]
+    content(id: String!): Content
+    # content(id: String!): Content
+
+    servers: [Server]
+    server(url:String!): Server
+    
+    users: [User]
+    user(id:String!): User
+}

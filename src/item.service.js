@@ -21,255 +21,42 @@ export class ItemService {
 
     this.allSpaces = {}
     this._allRawSpaces = {}
-  }
 
-  @Interval(30 * 60 * 1000) // Call this every 30 minutes
-  async fetch () {
-    Logger.log('Fetching items...')
+    // Initializing custom caching arrays specifically for the graphql data interface.
+    // All of this chaos needs to get rid of in the rewrite of this api
+    this.servers = []
+    this.users = []
+    this.contents = []
 
-    const configService = this.configService
-    const httpService = this.httpService
+    this.initiallyFetched = false
+    this.batchCounter = 0
 
-    const matrixClient = createMatrixClient({
+    this.matrixClient = createMatrixClient({
       baseUrl: this.configService.get('matrix.homeserver_base_url'),
       accessToken: this.configService.get('matrix.access_token'),
       userId: this.configService.get('matrix.user_id'),
       useAuthorizationHeader: true
     })
 
-    let batchCounter = 0
+    this.getAllSpaces = this.getAllSpaces.bind(this)
+    this.getBatch = this.getBatch.bind(this)
+  }
 
-    async function getBatch (spaceId, options, batch, hirachy) {
-      batchCounter++
-      Logger.log('batch:\t' + batchCounter)
-      // console.log(await matrixClient.getRoomHierarchy("!YCztLjuiNnMHWFPUVP:stechlin-institut.ruralmindshift.org", options.max, options.depth))
-      const hierarchyBatch = batch ? await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth, false, batch) : await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth)
-      //! hierarchyBatch.next_batch ? hirachy :
-      hirachy.push(...hierarchyBatch.rooms)
-      if (!hierarchyBatch?.next_batch) {
-        return hirachy
-      } else {
-        const getMoreRooms = await getBatch(spaceId, options, hierarchyBatch?.next_batch, hirachy)
-      //  console.log(getMoreRooms)
-      }
-      return hirachy
-    }
+  @Interval(30 * 60 * 1000) // Call this every 30 minutes
+  async fetch () {
+    if (!this.configService.get('fetch.autoFetch') && this.initiallyFetched) return
 
-    async function getAllSpaces (spaceId, options) {
-      //  let hierarchy = {}
+    Logger.log('Fetching items...')
 
-      // const hierarchy = await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth)
-
-      const hierarchy = {}
-
-      hierarchy.rooms = await getBatch(spaceId, options, false, [])
-
-      //  const batch1 = await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth, false)
-
-      //  console.log(batch1.next_batch)
-
-      //  const batch2 =  await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth, false, batch1.next_batch)
-
-      //  console.log(batch2)
-
-      //    console.log(newHirachy)
-      const ret = {}
-
-      hierarchy?.rooms.forEach(space => {
-        ret[space.room_id] = space
-      })
-      Logger.log(Object.keys(ret).length)
-      for await (const [i, space] of hierarchy?.rooms.entries()) {
-        // await Promise.all(hierarchy?.rooms.map(async (space) => {
-
-        const stateEvents = await matrixClient.roomState(space?.room_id).catch((e) => { console.log(space?.room_id) })
-        if (stateEvents?.some(state => state.type === 'dev.medienhaus.meta')) {
-          ret[space?.room_id].stateEvents = stateEvents
-        }
-        await new Promise(r => setTimeout(r, 1))
-        Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
-      // }))
-      }
-      return ret
-    }
-
-    function generateStructure (spaces, spaceId, structure) {
-      const space = _.find(spaces, { room_id: spaceId })
-      if (space) {
-        const children = {}
-        space?.children_state.forEach(childrenState => {
-          const ret = generateStructure(spaces, childrenState.state_key, structure)
-          if (ret) {
-            if (_.find(_.find(spaces, space => space.room_id === ret.room_id).stateEvents, { type: 'dev.medienhaus.meta' })) {
-              children[ret.room_id] = ret
-            }
-          }
-        })
-        const metaEvent = _.find(space.stateEvents, { type: 'dev.medienhaus.meta' })
-        // if (filter.some(f => f === metaEvent?.content?.type)) { return { name: space.name, room_id: space.room_id, type: metaEvent?.content?.type, children: children } }
-        return { name: space.name, room_id: space.room_id, id: space.room_id, type: metaEvent?.content?.type, template: metaEvent?.content?.template, children: children }
-      }
-    }
-
-    async function generateAllSpaces (rawSpaces) {
-      const ret = {}
-
-      // await Promise.all(_.map(rawSpaces, async (space,i) => {
-      for await (const [i, s] of Object.keys(rawSpaces).entries()) {
-        const space = rawSpaces[s]
-        const extendedData = await getStateData(space.stateEvents, space.room_id, rawSpaces)
-        if (extendedData) {
-          ret[space.room_id] = { id: space.room_id, ...extendedData }
-        }
-        await new Promise(r => setTimeout(r, 10))
-        Logger.log('get members:\t' + i + '/' + Object.keys(rawSpaces).length)
-        //  }))
-      }
-
-      return ret
-    }
-
-    async function getStateData (stateEvents, spaceId, rawSpaces) {
-      const metaEvent = _.find(stateEvents, { type: 'dev.medienhaus.meta' })
-      //   if (!metaEvent) console.log(spaceId)
-      if (!metaEvent) return
-      const nameEvent = _.find(stateEvents, { type: 'm.room.name' })
-      if (!nameEvent) return
-      const allocationEvent = _.find(stateEvents, { type: 'dev.medienhaus.allocation' })
-      const joinRulesEvent = _.find(stateEvents, { type: 'm.room.join_rules' })
-
-      const parent = {}
-      const parents = []
-
-      _.forEach(rawSpaces, space => {
-        const children = (_.filter(space.stateEvents, event => event.type === 'm.space.child'))
-
-        _.forEach(children, child => {
-          if (child?.state_key === spaceId) {
-            parents.push({ name: space.name, room_id: space.room_id })
-            parent.name = space.name
-            parent.room_id = space.room_id
-          }
-        })
-      })
-
-      let published
-      let topicEn
-      let topicDe
-      let authorNames
-
-      let type
-
-      const members = []
-
-      const children = []
-
-      const joinedMembers = await matrixClient.getJoinedRoomMembers(spaceId).catch((e) => { console.log(spaceId) })
-      const users = _.find(stateEvents, { type: 'm.room.power_levels' })?.content?.users
-      const authors = _.map(joinedMembers?.joined, (member, memberId) => _.some(users, (userData, userId) => userId === memberId && userData >= 50 && memberId !== configService.get('matrix.user_id'))
-        ? {
-            id: memberId,
-            name: joinedMembers?.joined[memberId]?.display_name,
-            avatar: joinedMembers?.joined[memberId]?.avatar_url ? matrixClient.mxcUrlToHttp(joinedMembers?.joined[memberId]?.avatar_url) : ''
-          }
-        : '')
-
-      if (metaEvent?.content?.template !== 'lang' && !(configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
-        const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
-          const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
-          return r
-        }
-        )
-
-        _.forEach(potentialChildren, child => {
-          if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
-            children.push(child.room_id)
-          //  console.log(child.room_id)
-          }
-        })
-
-        if (
-          configService.get('attributable.spaceTypes.item').some(f => f === metaEvent?.content?.template) &&
-        (metaEvent.content.published ? metaEvent.content.published === 'public' : (joinRulesEvent && joinRulesEvent.content.join_rule === 'public'))
-        ) {
-          published = 'public'
-
-          const languageSpaceIds = (stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key))
-          if (!languageSpaceIds) {
-          //  console.log('bing')
-            return
-          }
-          const languageSpaces = languageSpaceIds.map(languageSpace => {
-            return _.find(rawSpaces, room => room.room_id === languageSpace)
-          })
-          if (!languageSpaces) {
-            // console.log('bing')
-            return
-          }
-          // fetch descriptions
-          const en = languageSpaces.filter(room => room?.name === 'en')
-          topicEn = en[0].topic || undefined
-          const de = languageSpaces.filter(room => room?.name === 'de')
-          topicDe = de[0]?.topic || undefined
-          // fetch authors aka. collaborators
-          authorNames = []
-
-          for (const [key, value] of Object.entries(joinedMembers?.joined)) {
-            authorNames.push(value.display_name)
-          }
-        } else {
-          if (!configService.get('attributable.spaceTypes.context').some(f => f === metaEvent?.content?.template)) {
-            published = 'draft'
-          } else {
-            // const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
-            //   const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
-            //   return r
-            // }
-            // )
-
-            // _.forEach(potentialChildren, child => {
-            //   if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
-            //     children.push(child.room_id)
-            //   //  console.log(child.room_id)
-            //   }
-            // })
-          }
-        }
-      } else {
-        return
-      }
-
-      const spaceName = nameEvent.content.name
-
-      const avatar = _.find(stateEvents, { type: 'm.room.avatar' })
-
-      if (metaEvent?.content?.deleted) return
-      return {
-        name: spaceName,
-        template: metaEvent?.content?.template,
-        topicEn: topicEn,
-        type: metaEvent?.content?.type,
-        topicDe: topicDe,
-        parent: parent.name,
-        parentSpaceId: parent.room_id,
-        parents: parents,
-        authors: authors,
-        published: published,
-        children: children,
-        allocation: { physical: allocationEvent?.content?.physical, temporal: allocationEvent?.content?.temporal },
-        thumbnail: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'scale') : '',
-        thumbnail_full_size: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url) : ''
-      }
-    }
-
-    const allSpaces = await getAllSpaces(this.configService.get('matrix.root_context_space_id'), { max: this.configService.get('fetch.max'), depth: this.configService.get('fetch.depth') })
+    const allSpaces = await this.getAllSpaces(this.configService.get('matrix.root_context_space_id'), { max: this.configService.get('fetch.max'), depth: this.configService.get('fetch.depth') })
     Logger.log(`Found ${Object.keys(allSpaces).length} spaces`)
-    const generatedStrucute = generateStructure(allSpaces, this.configService.get('matrix.root_context_space_id'), {})
+    const generatedStrucute = this.generateStructure(allSpaces, this.configService.get('matrix.root_context_space_id'), {})
     const structure = {}
     structure[generatedStrucute.room_id] = generatedStrucute
     this._allRawSpaces = allSpaces
-    this.allSpaces = await generateAllSpaces(allSpaces)
+    this.allSpaces = await this.generateAllSpaces(allSpaces)
     this.structure = structure
+    this.contents = []
 
     // console.log(_.find(this._allRawSpaces,space => space.room_id === '!klLhNzPtFJxaLFQJKB:stechlin-institut.ruralmindshift.org'))
 
@@ -280,6 +67,250 @@ export class ItemService {
     })
 
     Logger.log(`Found ${Object.keys(this.items).length} items`)
+
+    // new for graphQL functionality
+    _.forEach(this.allSpaces, space => {
+      // fill users
+      _.forEach(space?.authors, author => {
+        if (!this.users.find(({ id }) => id === author.id)) {
+          if (author.id) {
+            this.users.push({ id: author.id, name: author.name, thumbnail: author?.avatar, thumbnail_full_size: author?.avatar })
+          }
+        }
+      })
+
+      // fill servers
+      const spaceUrl = space.id.split(':')[1]
+      if (!this.servers.find(({ url }) => url === spaceUrl)) {
+      //  this.servers.push({ url: spaceUrl, users: [], context: [], item: [], content: [] })
+        this.servers.push({ url: spaceUrl })
+      }
+    })
+
+    if (!this.initiallyFetched) this.initiallyFetched = true
+  }
+
+  async getBatch (spaceId, options, batch, hirachy) {
+    this.batchCounter++
+    Logger.log('batch:\t' + this.batchCounter)
+    // console.log(await matrixClient.getRoomHierarchy("!YCztLjuiNnMHWFPUVP:stechlin-institut.ruralmindshift.org", options.max, options.depth))
+    const hierarchyBatch = batch ? await this.matrixClient.getRoomHierarchy(spaceId, options.max, options.depth, false, batch) : await this.matrixClient.getRoomHierarchy(spaceId, options.max, options.depth)
+    //! hierarchyBatch.next_batch ? hirachy :
+    hirachy.push(...hierarchyBatch.rooms)
+    if (!hierarchyBatch?.next_batch) {
+      return hirachy
+    } else {
+      await new Promise(r => setTimeout(r, 100))
+
+      const getMoreRooms = await this.getBatch(spaceId, options, hierarchyBatch?.next_batch, hirachy)
+      //  console.log(getMoreRooms)
+    }
+    return hirachy
+  }
+
+  async getAllSpaces (spaceId, options) {
+    const hierarchy = {}
+
+    hierarchy.rooms = await this.getBatch(spaceId, options, false, [])
+    const ret = {}
+
+    hierarchy?.rooms.forEach(space => {
+      ret[space.room_id] = space
+    })
+    Logger.log(Object.keys(ret).length)
+    for await (const [i, space] of hierarchy?.rooms.entries()) {
+      // await Promise.all(hierarchy?.rooms.map(async (space) => {
+      const stateEvents = await this.matrixClient.roomState(space?.room_id).catch((e) => { console.log(space?.room_id) })
+      if (stateEvents?.some(state => state.type === 'dev.medienhaus.meta')) {
+        ret[space?.room_id].stateEvents = stateEvents
+      }
+      await new Promise(r => setTimeout(r, 1))
+      Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
+      // }))
+    }
+    return ret
+  }
+
+  generateStructure (spaces, spaceId, structure, lastId) {
+    const space = _.find(spaces, { room_id: spaceId })
+    if (space) {
+      const children = {}
+      space?.children_state.forEach(childrenState => {
+        let ret
+        if (childrenState.state_key !== lastId) {
+          ret = this.generateStructure(spaces, childrenState.state_key, structure, spaceId)
+        }
+
+        if (ret) {
+          if (_.find(_.find(spaces, space => space.room_id === ret.room_id).stateEvents, { type: 'dev.medienhaus.meta' })) {
+            children[ret.room_id] = ret
+          }
+        }
+      })
+      const metaEvent = _.find(space.stateEvents, { type: 'dev.medienhaus.meta' })
+      // if (filter.some(f => f === metaEvent?.content?.type)) { return { name: space.name, room_id: space.room_id, type: metaEvent?.content?.type, children: children } }
+      return { name: space.name, room_id: space.room_id, id: space.room_id, type: metaEvent?.content?.type, template: metaEvent?.content?.template, children }
+    }
+  }
+
+  async generateAllSpaces (rawSpaces) {
+    const ret = {}
+
+    // await Promise.all(_.map(rawSpaces, async (space,i) => {
+    for await (const [i, s] of Object.keys(rawSpaces).entries()) {
+      const space = rawSpaces[s]
+      const extendedData = await this.getStateData(space.stateEvents, space.room_id, rawSpaces)
+      if (extendedData) {
+        ret[space.room_id] = { id: space.room_id, ...extendedData }
+      }
+      await new Promise(r => setTimeout(r, 10))
+      Logger.log('get members:\t' + i + '/' + Object.keys(rawSpaces).length)
+      //  }))
+    }
+
+    return ret
+  }
+
+  async getStateData (stateEvents, spaceId, rawSpaces) {
+    const metaEvent = _.find(stateEvents, { type: 'dev.medienhaus.meta' })
+    //   if (!metaEvent) console.log(spaceId)
+    if (!metaEvent) return
+    const nameEvent = _.find(stateEvents, { type: 'm.room.name' })
+    if (!nameEvent) return
+    const allocationEvent = _.find(stateEvents, { type: 'dev.medienhaus.allocation' })
+    const tagEvent = _.find(stateEvents, { type: 'dev.medienhaus.tags' })
+    const joinRulesEvent = _.find(stateEvents, { type: 'm.room.join_rules' })
+
+    const parent = {}
+    const parents = []
+
+    _.forEach(rawSpaces, space => {
+      const children = (_.filter(space.stateEvents, event => event.type === 'm.space.child'))
+
+      _.forEach(children, child => {
+        if (child?.state_key === spaceId) {
+          parents.push({ name: space.name, room_id: space.room_id })
+          parent.name = space.name
+          parent.room_id = space.room_id
+        }
+      })
+    })
+
+    let published
+    let topicEn
+    let topicDe
+    let authorNames
+
+    let type
+
+    const members = []
+
+    const children = []
+
+    let languageSpaces
+
+    const joinedMembers = await this.matrixClient.getJoinedRoomMembers(spaceId).catch((e) => { console.log(spaceId) })
+    const users = _.find(stateEvents, { type: 'm.room.power_levels' })?.content?.users
+    const authors = _.map(joinedMembers?.joined, (member, memberId) => _.some(users, (userData, userId) => userId === memberId && userData >= 50 && memberId !== this.configService.get('matrix.user_id'))
+      ? {
+          id: memberId,
+          name: joinedMembers?.joined[memberId]?.display_name,
+          avatar: joinedMembers?.joined[memberId]?.avatar_url ? this.matrixClient.mxcUrlToHttp(joinedMembers?.joined[memberId]?.avatar_url) : ''
+        }
+      : '')
+
+    if (metaEvent?.content?.template !== 'lang' && !(this.configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
+      const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
+        const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
+        return r
+      }
+      )
+
+      _.forEach(potentialChildren, child => {
+        if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
+          children.push(child.room_id)
+          //  console.log(child.room_id)
+        }
+      })
+
+      if (
+        this.configService.get('attributable.spaceTypes.item').some(f => f === metaEvent?.content?.template) &&
+        (metaEvent.content.published ? metaEvent.content.published === 'public' : (joinRulesEvent && joinRulesEvent.content.join_rule === 'public'))
+      ) {
+        published = 'public'
+
+        const languageSpaceIds = (stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key))
+        if (!languageSpaceIds) {
+          //  console.log('bing')
+          return
+        }
+        languageSpaces = languageSpaceIds.map(languageSpace => {
+          return _.find(rawSpaces, room => room.room_id === languageSpace)
+        })
+        if (!languageSpaces) {
+          // console.log('bing')
+          return
+        }
+        // fetch descriptions
+        const en = languageSpaces.filter(room => room?.name === 'en')
+        topicEn = en[0] ? en[0].topic : ''
+        const de = languageSpaces.filter(room => room?.name === 'de')
+        topicDe = de[0] ? de[0].topic : ''
+        // fetch authors aka. collaborators
+        authorNames = []
+        if (joinedMembers) {
+          for (const [key, value] of Object.entries(joinedMembers?.joined)) {
+            authorNames.push(value.display_name)
+          }
+        }
+      } else {
+        if (!this.configService.get('attributable.spaceTypes.context').some(f => f === metaEvent?.content?.template)) {
+          published = 'draft'
+        } else {
+          // const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
+          //   const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
+          //   return r
+          // }
+          // )
+
+          // _.forEach(potentialChildren, child => {
+          //   if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
+          //     children.push(child.room_id)
+          //   //  console.log(child.room_id)
+          //   }
+          // })
+        }
+      }
+    } else {
+      return
+    }
+
+    const spaceName = nameEvent.content.name
+
+    const avatar = _.find(stateEvents, { type: 'm.room.avatar' })
+
+    const thumbnailMxc = typeof avatar?.content?.url === 'object' ? avatar?.content?.url?.content_uri : avatar?.content?.url
+
+    if (metaEvent?.content?.deleted) return
+    return {
+      name: spaceName,
+      template: metaEvent?.content?.template,
+      topicEn,
+      type: metaEvent?.content?.type,
+      topicDe,
+      languages: languageSpaces?.map(lang => lang.name),
+      descriptions: languageSpaces?.map(lang => { return { id: lang?.room_id, name: lang?.name, topic: lang?.topic } }),
+      parent: parent.name,
+      parentSpaceId: parent.room_id,
+      parents,
+      authors,
+      published,
+      children,
+      allocation: { physical: allocationEvent?.content?.physical, temporal: allocationEvent?.content?.temporal },
+      tags: tagEvent?.content?.tags,
+      thumbnail: thumbnailMxc ? this.matrixClient.mxcUrlToHttp(thumbnailMxc, 800, 800, 'scale') : '',
+      thumbnail_full_size: thumbnailMxc ? this.matrixClient.mxcUrlToHttp(thumbnailMxc) : ''
+    }
   }
 
   applyFilterToStructure (structure_, filter, ret) {
@@ -305,7 +336,7 @@ export class ItemService {
     }
   }
 
-  getAllSpaces () {
+  _getAllSpaces () {
     return this.allSpaces
   }
 
@@ -414,7 +445,7 @@ export class ItemService {
     let ret
     Object.entries(level).forEach(([key, content]) => {
       if (key === id) {
-        ret = { [parent.id]: { id: parent.id, name: parent.name, child: { [id]: { id: id, name: content.name } } } }
+        ret = { [parent.id]: { id: parent.id, name: parent.name, child: { [id]: { id, name: content.name } } } }
       } else {
         if (content.children && Object.keys(content.children).length > 0) {
           Object.entries(content.children).forEach(([childK, childC]) => {
@@ -505,17 +536,30 @@ export class ItemService {
     if (!this.items[id]) {
       return null
     }
+
+    console.log(this.items[id])
+    if (this.items[id].content) return this.items[id]
     const { content, formattedContent } = await this.getContent(id, language)
     return { ...this.items[id], content, formatted_content: formattedContent }
   }
 
   async getContent (projectSpaceId, language) {
+    // const cachedContent = this.contents.find((cache) => cache.id === projectSpaceId && cache.language === language)
+    // if (cachedContent) return cachedContent.content
+
     const contentBlocks = await this.getContentBlocks(projectSpaceId, language)
+    // this.contents.push({ id: projectSpaceId, language, content: contentBlocks })
     if (!contentBlocks) return
-    return {
+
+    const ret = {
       content: contentBlocks,
       formattedContent: Object.keys(contentBlocks).map(index => contentBlocks[index].formatted_content).join('')
     }
+
+    this.items[projectSpaceId].content = ret.content
+    this.items[projectSpaceId].formattedContent = ret.formattedContent
+
+    return ret
   }
 
   async getContentBlocks (projectSpaceId, language) {
@@ -529,25 +573,12 @@ export class ItemService {
 
     // Get the spaces for the available languages
     const languageSpaces = {}
-    const spaceSummary = await matrixClient.getRoomHierarchy(projectSpaceId, 100, 100)
+    const spaceSummary = await matrixClient.getRoomHierarchy(projectSpaceId, 1000, 1000)
 
-    spaceSummary.rooms.map(languageSpace => {
-      if (languageSpace.room_id === projectSpaceId) return
-      languageSpaces[languageSpace.name] = languageSpace.room_id
-    })
+    if (spaceSummary?.rooms.length === 1) {
+      // no language blocks detected get messages directly from timeline of space
 
-    if (!languageSpaces[language]) return
-
-    // Get the actual content block rooms for the given language
-    const contentRooms = await matrixClient.getRoomHierarchy(languageSpaces[language], 100, 100)
-
-    // console.log(contentRooms)
-    await Promise.all(contentRooms.rooms.map(async (contentRoom) => {
-      // Skip the language space itself
-      if (contentRoom.room_id === languageSpaces[language]) return
-
-      // Get the last message of the current content room
-      const lastMessage = (await this.httpService.axiosRef(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`, {
+      const lastMessage = (await this.httpService.axiosRef(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${projectSpaceId}/messages`, {
         method: 'GET',
         headers: { Authorization: 'Bearer ' + this.configService.get('matrix.access_token') },
         params: {
@@ -559,39 +590,85 @@ export class ItemService {
         }
       })).data.chunk[0]
 
-      if (!lastMessage) return
+      const content = lastMessage?.content?.body ? lastMessage?.content?.body : ''
+      return { 0: { type: 'text', content, formatted_content: `<div>${content}</div>` } }
+    }
 
-      const type = contentRoom.name.substring(contentRoom.name.indexOf('_') + 1)
-      const content = (() => {
-        switch (type) {
-          case 'audio':
-          case 'image':
-            return matrixClient.mxcUrlToHttp(lastMessage.content.url)
-          default: return lastMessage.content.body
+    spaceSummary.rooms.map(languageSpace => {
+      if (languageSpace.room_id === projectSpaceId) return
+      languageSpaces[languageSpace.name] = languageSpace.room_id
+    })
+
+    if (!languageSpaces[language]) return
+
+    // Get the actual content block rooms for the given language
+    const contentRooms = await matrixClient.getRoomHierarchy(languageSpaces[language], 1000, 1000)
+
+    // console.log(contentRooms)
+    await Promise.all(contentRooms.rooms.map(async (contentRoom) => {
+      // Skip the language space itself
+      if (contentRoom.room_id === languageSpaces[language]) return
+
+      const cached = this.contents.find(({ id }) => id === contentRoom.room_id)
+
+      if (cached) {
+        result[contentRoom.name.substring(0, contentRoom.name.indexOf('_'))] = {
+          template: cached.template,
+          content: cached.content,
+          formatted_content: cached.formatted_content
         }
-      })()
-      const formattedContent = (() => {
-        switch (type) {
+      } else {
+      // console.log(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`)
+        // Get the last message of the current content room
+        const lastMessage = (await this.httpService.axiosRef(this.configService.get('matrix.homeserver_base_url') + `/_matrix/client/r0/rooms/${contentRoom.room_id}/messages`, {
+          method: 'GET',
+          headers: { Authorization: 'Bearer ' + this.configService.get('matrix.access_token') },
+          params: {
+          // @TODO Skip deleted messages
+            limit: 1,
+            dir: 'b',
+            // Only consider m.room.message events
+            filter: JSON.stringify({ types: ['m.room.message'] })
+          }
+        })).data.chunk[0]
+
+        if (!lastMessage) return
+
+        const template = contentRoom.name.substring(contentRoom.name.indexOf('_') + 1)
+        const content = (() => {
+          switch (template) {
+            case 'audio':
+            case 'file':
+            case 'image':
+              return matrixClient.mxcUrlToHttp(lastMessage.content.url)
+            default: return lastMessage.content.body
+          }
+        })()
+        const formattedContent = (() => {
+          switch (template) {
           // For text, ul and ol we just return whatever's stored in the Matrix event's formatted_body
-          case 'text':
-          case 'ul':
-          case 'ol':
-            return lastMessage.content.formatted_body
-          // For all other types we render the HTML using the corresponding Handlebars template in /views/contentBlocks
-          default: return Handlebars.compile(fs.readFileSync(join(__dirname, '..', 'views', 'contentBlocks', `${type}.hbs`), 'utf8'))({
-            content,
-            matrixEventContent: lastMessage.content
-          })
+            case 'text':
+            case 'ul':
+            case 'ol':
+              return lastMessage.content.formatted_body
+              // For all other types we render the HTML using the corresponding Handlebars template in /views/contentBlocks
+            default: return Handlebars.compile(fs.readFileSync(join(__dirname, '..', 'views', 'contentBlocks', `${template}.hbs`), 'utf8'))({
+              content,
+              matrixEventContent: lastMessage.content
+            })
+          }
+        })()
+        const cachedRoom = { id: contentRoom.room_id, parent: projectSpaceId, name: contentRoom.name, template, content, formatted_content: formattedContent }
+        this.contents.push(cachedRoom)
+        // Append this content block's data to our result set
+        result[contentRoom.name.substring(0, contentRoom.name.indexOf('_'))] = {
+          template,
+          content,
+          formatted_content: formattedContent
         }
-      })()
-
-      // Append this content block's data to our result set
-      result[contentRoom.name.substring(0, contentRoom.name.indexOf('_'))] = {
-        type,
-        content,
-        formatted_content: formattedContent
       }
-    }))
+    }
+    ))
 
     return result
   }
@@ -608,7 +685,68 @@ export class ItemService {
     }
   }
 
+  getAbstractUser (userId) {
+    const userAbstract = {
+      id: userId,
+      type: 'user',
+      template: '',
+      context: [],
+      content: [],
+      item: []
+    }
+    const userSpaces = this._findSpacesByUser(userId)
+    if (!userSpaces.length > 0) {
+      return userAbstract
+    }
+
+    userSpaces.forEach(space => {
+      const abstract = {
+        id: space.id,
+        name: space.name,
+        type: space.type,
+        template: space.template,
+        thumbnail: space.thumbnail ? space.thumbnail : undefined,
+        thumbnail_full_size: space.thumbnail_full_size ? space.thumbnail_full_size : undefined,
+        parents: space.parents
+      }
+      switch (abstract.type) {
+        case 'item':
+          userAbstract.item.push(abstract)
+          break
+        case 'context':
+          userAbstract.context.push(abstract)
+          break
+        case 'content':
+          userAbstract.content.push(abstract)
+          break
+        default:
+          break
+      }
+    })
+    const userData = this._extractUserInformationsFromSpace(userId, userSpaces[0])
+
+    userAbstract.name = userData.name ? userData.name : ''
+    userAbstract.thumbnail = userData.avatar ? userData.avatar : ''
+    userAbstract.thumbnail_full_size = userData.avatar ? userData.avatar : ''
+
+    return userAbstract
+  }
+
+  _findSpacesByUser (userId) {
+    return _.filter(this.allSpaces, (space) => {
+      if (_.find(space?.authors, (author) => { return author.id === userId })) {
+        return space
+      }
+    })
+  }
+
+  _extractUserInformationsFromSpace (userId, space) {
+    return _.find(space?.authors, { id: userId })
+  }
+
   getAbstract (id) {
+    if (id?.charAt(0) === '@') return this.getAbstractUser(id) // check if the requested Id is a user instead of a room
+
     const space = this._findSpace(id)
     if (!space) return
 
@@ -623,13 +761,14 @@ export class ItemService {
     }
 
     return {
-      id: id,
+      id,
       allocation: space?.allocation,
       type: space?.type,
       name: space?.name,
       template: space?.template,
       thumbnail: space?.thumbnail,
       thumbnail_full_size: space?.thumbnail_full_size,
+      tags: space?.tags,
       origin: {
         applications: [],
         server: [space.id.split(':')[1]],
@@ -788,7 +927,14 @@ export class ItemService {
       id: space.id,
       name: space?.name,
       template: space?.template,
-      type: space?.type
+      type: space?.type,
+      allocation: space?.allocation,
+      thumbnail: space?.thumbnail,
+      description: {
+        default: space?.topicEn,
+        EN: space?.topicEn,
+        DE: space?.topicDe
+      }
     }
   }
 
@@ -802,6 +948,9 @@ export class ItemService {
 
   async _extendTreeData (structure, ret) {
     ret = this.getAbstract(structure.id)
+    if (!ret) {
+      ret = {}
+    }
     ret.children = {}
     if (ret.type !== 'item') {
       await Promise.all(_.map(structure?.children, async (child) => {
@@ -809,7 +958,7 @@ export class ItemService {
       }))
     } else {
       // console.log(this.getContent(ret.id, 'en'))
-      ret.render = await this.getContent(ret.id, 'en')
+      // ret.render = await this.getContent(ret.id, 'en') // commented out dont know why this is there
     }
 
     return ret
@@ -836,12 +985,12 @@ export class ItemService {
   }
 
   async getRenderedJson (id) {
-    const contentEN = await this.getContent(id, 'en')
-    const contentDE = await this.getContent(id, 'de')
     const abstract = this.getAbstract(id)
     const languages = {}
-    if (contentEN) languages.EN = contentEN
-    if (contentDE) languages.DE = contentDE
+
+    for await (const [i, language] of this.items[id]?.languages.entries()) {
+      languages[language.toUpperCase()] = await this.getContent(id, language)
+    }
 
     const matrixClient = createMatrixClient({
       baseUrl: this.configService.get('matrix.homeserver_base_url'),
@@ -850,7 +999,7 @@ export class ItemService {
       useAuthorizationHeader: true
     })
 
-    return { abstract: { name: abstract?.name, thumbnail: abstract?.thumbnail, thumbnail_full_size: abstract?.thumbnail_full_size, description: abstract?.description }, languages: languages }
+    return { abstract: { name: abstract?.name, thumbnail: abstract?.thumbnail, thumbnail_full_size: abstract?.thumbnail_full_size, description: abstract?.description }, languages }
   }
 
   getTreeFiltedByContext (id) {
@@ -878,168 +1027,384 @@ export class ItemService {
     return list
   }
 
-  /// //// POST
+  // Stechlin 2023
 
-  async postFetch (id, options) {
-    this._updatedId(id, options)
+  async getFullList (id) {
+    const fullTree = await this.getFullTree(id)
+
+    const ids = []
+    return _.map(this._getEntries(fullTree, []), (entry) => {
+      if (!ids.includes(entry.id)) {
+        ids.push(entry.id)
+        return entry
+      }
+    })
   }
 
-  _updatedId (id, options) {
-    const space = this._findSpace(id)
-    // console.log(space)
-    // return this._allRawSpaces[id]
-    // console.log(this.fetch().getBatch())
-    // return await this.fetch().getBatch(id, { max: 100, depth: 10 }, false, [])
-    if (space) {
-      return this._applyUpdate(id, space)
-    } else {
-      // console.log('222')
-    }
-  }
-
-  async _applyUpdate (id, oldSpace) {
-    const matrixClient = createMatrixClient({
-      baseUrl: this.configService.get('matrix.homeserver_base_url'),
-      accessToken: this.configService.get('matrix.access_token'),
-      userId: this.configService.get('matrix.user_id'),
-      useAuthorizationHeader: true
+  _getEntries (level, entries) {
+    _.forEach(level?.item, item => {
+      entries.push(item)
+    })
+    _.forEach(level?.context, context => {
+      entries.push(context)
     })
 
-    if (!oldSpace) oldSpace = this._findSpace(id)
-    const oldRawSpace = _.find(this._allRawSpaces, { room_id: id })
-    const oldTree = this._findSubTree(this.getStructure()[this.configService.get('matrix.root_context_space_id')], id)
+    _.forEach(level?.children, child => {
+      entries = this._getEntries(child, entries)
+    })
 
-    const newSpace = await this._getBatch(id, { max: 100, depth: 1 }, false, [], matrixClient)
-
-    const stateEvents = await matrixClient.roomState(id).catch(() => {})
-    const extendedData = await this._getStateData(stateEvents, id, rawSpaces)
-    // console.log(extendedData)
-
-    // console.log(newSpace)
+    return entries
   }
 
-  async _getBatch (spaceId, options, batch, hirachy, matrixClient) {
-    // console.log(await matrixClient.getRoomHierarchy("!YCztLjuiNnMHWFPUVP:stechlin-institut.ruralmindshift.org", options.max, options.depth))
-    const hierarchyBatch = batch ? await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth, false, batch) : await matrixClient.getRoomHierarchy(spaceId, options.max, options.depth)
-    //! hierarchyBatch.next_batch ? hirachy :
-    hirachy.push(...hierarchyBatch.rooms)
-    if (!hierarchyBatch?.next_batch) {
-      return hirachy
-    } else {
-      const getMoreRooms = await this._getBatch(spaceId, options, hierarchyBatch?.next_batch, hirachy)
-      //  console.log(getMoreRooms)
+  async getItemsOfFullListFilteredByItems (id) {
+    const fullList = await this.getFullList(id)
+
+    const items = _.filter(fullList, { type: 'item' })
+
+    return _.filter(items, item => this.configService.get('attributable.spaceTypes.item').some(f => f === item.template))
+  }
+
+  /// ////// GRAPHQL
+
+  _findSpacesByUserId (userId) {
+    return _.filter(this.allSpaces, (space) => {
+      if (_.find(space.authors, { id: userId })) {
+        return space
+      }
+    })
+  }
+
+  getServer (serverUrl) {
+    const server = _.find(this.servers, ({ url }) => url === serverUrl)
+    if (server) {
+      server.users = _.filter(this.users, ({ id }) => id.split(':')[1] === server.url)
     }
-    return hirachy
+    return server
   }
 
-  async _getStateData (stateEvents, spaceId, rawSpaces, matrixClient) {
-    const metaEvent = _.find(stateEvents, { type: 'dev.medienhaus.meta' })
-    //   if (!metaEvent) console.log(spaceId)
-    if (!metaEvent) return
-    const nameEvent = _.find(stateEvents, { type: 'm.room.name' })
-    if (!nameEvent) return
-    const allocationEvent = _.find(stateEvents, { type: 'dev.medienhaus.allocation' })
-    const joinRulesEvent = _.find(stateEvents, { type: 'm.room.join_rules' })
+  getUser (userId) {
+    const user = _.find(this.users, ({ id }) => id === userId)
+    if (user) {
+      user.server = this.getServer(user.id.split(':')[1])
+      const userSpaces = this._findSpacesByUserId(userId)
+      user.item = _.filter(userSpaces, { type: 'item' })
+      user.context = _.filter(userSpaces, { type: 'context' })
+      user.content = _.filter(userSpaces, { type: 'content' })
+    }
+    return user
+  }
 
-    const parent = {}
-
-    _.forEach(rawSpaces, space => {
-      const children = (_.filter(space.stateEvents, event => event.type === 'm.space.child'))
-
-      _.forEach(children, child => {
-        if (child?.state_key === spaceId) {
-          parent.name = space.name
-          parent.room_id = space.room_id
+  getSpaces (template, type) {
+    let spaces = []
+    if (type && ((type === 'item') || (type === 'content') || (type === 'context'))) {
+      spaces = _.map(this.allSpaces, (space) => {
+        if (space?.type === type) {
+          return space
         }
       })
-    })
-
-    let published
-    let topicEn
-    let topicDe
-    let authorNames
-    let type
-    const members = []
-
-    const children = []
-
-    const joinedMembers = await matrixClient.getJoinedRoomMembers(spaceId).catch(() => {})
-
-    for (const [key, value] of Object.entries(joinedMembers?.joined)) {
-      members.push({ id: key, name: value.display_name })
     }
 
-    if (this.configService.get('attributable.spaceTypes.item').some(f => f === metaEvent?.content?.template)) {
-      type = 'item'
-    } else if (this.configService.get('attributable.spaceTypes.context').some(f => f === metaEvent?.content?.template)) {
-      type = 'context'
-    }
-
-    if (metaEvent?.content?.type !== 'lang' && !(this.configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
-      if (
-        this.configService.get('attributable.spaceTypes.item').some(f => f === metaEvent?.content?.template) &&
-      (metaEvent.content.published ? metaEvent.content.published === 'public' : (joinRulesEvent && joinRulesEvent.content.join_rule === 'public'))
-      ) {
-        published = 'public'
-
-        const languageSpaceIds = (stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key))
-
-        const languageSpaces = languageSpaceIds.map(languageSpace => {
-          return _.find(rawSpaces, room => room.room_id === languageSpace)
-        })
-
-        // fetch descriptions
-        const en = languageSpaces.filter(room => room.name === 'en')
-        topicEn = en[0].topic || undefined
-        const de = languageSpaces.filter(room => room.name === 'de')
-        topicDe = de[0].topic || undefined
-        // fetch authors aka. collaborators
-        authorNames = []
-
-        for (const [key, value] of Object.entries(joinedMembers?.joined)) {
-          authorNames.push(value.display_name)
-        }
-      } else {
-        if (!this.configService.get('attributable.spaceTypes.context').some(f => f === metaEvent?.content?.template)) {
-          published = 'draft'
-        } else {
-          const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
-            const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
-            return r
-          }
-          )
-
-          _.forEach(potentialChildren, child => {
-            if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
-              children.push(child.room_id)
-            }
-          })
-        }
+    if (template) {
+      if (!(spaces?.length > 0)) {
+        spaces = _.map(this.allSpaces, (space) => space)
       }
-    } else {
+      const allowedTemplates = [...this.configService.get('attributable.spaceTypes.item'), ...this.configService.get('attributable.spaceTypes.content'), ...this.configService.get('attributable.spaceTypes.context')]
+      spaces = _.filter(spaces, space => {
+        if (space?.template === template && allowedTemplates.some(f => f === space?.template)) {
+          return space
+        }
+      })
+    }
+
+    if (!template && !type && !spaces?.length > 0) { // if not template and not type defined just get the raw information. it is done this way to pevent to cyle to many times through the full array
+      spaces = _.map(this.allSpaces, (space) => space)
+    }
+
+    return _.compact(spaces)
+  }
+
+  // converting to type orientated schema from graphql. This is such a mess, rewrite highly needed!
+  convertSpaces (spaces) {
+    return _.map(spaces, space => {
+      return this.convertSpace(space?.id, space)
+    })
+  }
+
+  convertSpace (id, space) {
+    if (!space) space = this._findSpace(id)
+    if (!space) {
+      return
+    }
+    const types = this._abstractTypes(this._sortChildren(space.children))
+
+    space.item = types.item
+    space.context = types.context
+    space.content = types.content
+
+    return {
+      id: space?.id,
+      name: space?.name,
+      type: space?.type,
+      template: space?.template,
+      item: _.map(space?.item, item => this.convertSpace(item.id)),
+      context: _.map(space?.context, context => this.convertSpace(context.id)),
+      content: _.map(space?.content, content => this.convertSpace(content.id)),
+      description: space?.descriptions?.map(desc => this.convertDescription(desc?.id, desc)),
+      thumbnail: space?.thumbnail,
+      thumbnail_full_size: space?.thumbnail_full_size,
+      parents: _.map(space?.parents, parent => this.convertSpace(this._findSpace(parent?.room_id))),
+      origin: this.convertOrigin(id, { application: [], server: [], authors: space?.authors }) // still contains placeholder which needs to be fixed in the future
+    }
+  }
+
+  convertOrigin (id, origin) {
+    const ret = {
+      application: [{ name: '' }], // needs to be implemented in the future, is not cached from the dev.medienhaus.meta event so far
+      server: _.map(origin.authors, author => this.getServer(author?.id?.split(':')[1])),
+      authors: _.map(origin.authors, author => this.getUser(author?.id))
+    }
+
+    return ret
+  }
+
+  convertDescription (id, description) {
+    const ret = {
+      language: description.name?.toUpperCase(),
+      content: description?.topic
+    }
+    return ret
+  }
+
+  convertAllocation (id, allocation) {
+
+  }
+
+  convertApplication (id, application) {
+
+  }
+
+  // CUSTOM ROUTE FOR D3
+
+  getD3Abstract (id) {
+    const space = this._findSpace(id)
+    return {
+      name: space.name,
+      id: space.id,
+      type: space.type,
+      template: space.template,
+      children: _.map(space?.children, child => {
+        const childSpaceAbstract = this._findSpace(child)
+        return { name: childSpaceAbstract.name, type: childSpaceAbstract.type, template: childSpaceAbstract.template, id: child }
+      })
+    }
+  }
+
+  getD3FullTree (id) {
+    const space = this._findSpace(id)
+    if (!space) return
+
+    const children = _.compact(_.map(space?.children, child => this.getD3FullTree(child))).filter(v => v !== null)
+
+    const ret = {
+      name: space?.name,
+      id: space?.id,
+      type: space?.type,
+      template: space?.template,
+      value: 100
+    }
+
+    if (children?.length > 0) {
+      ret.children = children
+    }
+
+    return ret
+  }
+
+  /// //// POST
+  _getParentsOfId (id) {
+    const idSpace = this.allSpaces[id]
+
+    if (!idSpace || !idSpace?.parents || !idSpace?.parents.length > 0) return
+
+    return idSpace?.parents.map(parent => parent.room_id)
+  }
+
+  async postFetch (id, options) {
+    return await this._updatedId(id, options)
+  }
+
+  async deleteFetch (id, options) {
+    const spaceAbstract = this.getAbstract(id)
+    const spaceRaw = this._allRawSpaces[id]
+    const spaceItems = this.items[id]
+    const spaceAllSpaces = this.allSpaces[id]
+
+    if (!spaceRaw || !spaceAbstract || !spaceAllSpaces) {
       return
     }
 
-    const spaceName = nameEvent.content.name
+    // TODO: adding auth function
 
-    const avatar = _.find(stateEvents, { type: 'm.room.avatar' })
-
-    if (metaEvent?.content?.deleted) return
-    return {
-      name: spaceName,
-      template: metaEvent?.content?.template,
-      topicEn: topicEn,
-      type: type,
-      topicDe: topicDe,
-      parent: parent.name,
-      parentSpaceId: parent.room_id,
-      authors: authorNames,
-      members: members,
-      published: published,
-      children: children,
-      allocation: { physical: allocationEvent?.content?.physical },
-      thumbnail: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'scale') : '',
-      thumbnail_full_size: avatar?.content.url ? matrixClient.mxcUrlToHttp(avatar?.content.url) : ''
+    // checking if space is already removed at parents via synapse
+    const liveParents = await this._getChildrenOfParents(options?.parentIds)
+    if (!liveParents) return { status: 'matrix parent not found' }
+    if (liveParents?.error) return { status: '' + liveParents.error + ' not found in matrix' } //  custom error response for specific room id
+    const deleted = _.map(liveParents, parent => {
+      return parent.some(room => room === id)
+    })
+    if (deleted.some(p => p)) {
+      return { status: 'not in matrix deleted' }
     }
+
+    // modify parents
+    const parents = this._getParentsOfId(id)
+    // and stateEvents of parents
+    parents.forEach(parent => {
+      // check if purge from all parent or just specific ones
+      if (!options?.purge) {
+        if (!options?.parentIds.some(p => p === parent)) { // if parent is not included in parentIds from the call then this will not be deleted
+          return
+        }
+      }
+      //   stateEvents of parents of RawSpaces
+      if (this._allRawSpaces[parent]) {
+        this._allRawSpaces[parent]?.stateEvents.forEach((stateEvent, i) => {
+          if (stateEvent.state_key === id) {
+            this._allRawSpaces[parent].stateEvents.splice(i, 1)
+          }
+        })
+        //  modify children_state of RawSpaces
+        this._allRawSpaces[parent]?.children_state.forEach((childStateEvent, i) => {
+          if (childStateEvent.state_key === id) {
+            this._allRawSpaces[parent].children_state.splice(i, 1)
+          }
+        })
+      }
+
+      // modify children key of AllSpaces
+      if (this.allSpaces[parent]) {
+        this.allSpaces[parent]?.children.forEach((child, i) => {
+          if (child === id) {
+            this.allSpaces[parent]?.children.splice(i, 1)
+          }
+        })
+      }
+      // modify childre key of items
+      if (this.items[parent]) {
+        this.items[parent]?.children.forEach((child, i) => {
+          if (child === id) {
+            this.items[parent]?.children.splice(i, 1)
+          }
+        })
+      }
+    })
+
+    // modify children
+    // -> can be skipped since no entry point to deliver the children of the given id anymore
+
+    // modify tree
+    this._findAndDeleatInStrucutre(id, Object.values(this.structure)[0], [Object.keys(this.structure)[0]], options)
+
+    if (options?.purge) {
+      // purge objects of given id
+      if (this._allRawSpaces[id]) delete this._allRawSpaces[id]
+      if (this.items[id]) delete this.items[id]
+      if (this.allSpaces[id]) delete this.allSpaces[id]
+      return { status: 'purged' }
+    } else { // if not purged then modifing the parentes keys of the given id object which it got deleted from
+      if (this._allRawSpaces[id]) {
+        _.remove(this._allRawSpaces[id]?.parents, p => options?.parentIds.some(pI => p.room_id === pI))
+      }
+
+      if (this.allSpaces[id]) {
+        _.remove(this.allSpaces[id]?.parents, p => options?.parentIds.some(pI => p.room_id === pI))
+      }
+
+      if (this.items[id]) {
+        _.remove(this.items[id]?.parents, p => options?.parentIds.some(pI => p.room_id === pI))
+      }
+    }
+
+    return { status: 'deleted' }
+  }
+
+  async _getChildrenOfParents (parentIds) {
+    const parents = {}
+    for await (const [i, parent] of parentIds?.entries()) {
+      const matrixReq = await this.matrixClient.getRoomHierarchy(parent, this.configService.get('fetch.max'), 1).catch(e => {})
+      if (!matrixReq) return { error: parent }
+      const children = _.map(_.filter(matrixReq?.rooms, room => parent !== room.room_id), room => room.room_id)
+      parents[parent] = children
+    }
+    console.log(parents)
+    return parents
+  }
+
+  _findAndDeleatInStrucutre (id, structure, path, options) {
+    _.forEach(structure?.children, child => {
+      const tmpPath = [...path]
+      tmpPath.push(child.id)
+      this._findAndDeleatInStrucutre(id, child, tmpPath, options)
+    })
+
+    if (structure.id === id) {
+      let pathWay = ''
+      path.forEach((p, i) => {
+        pathWay += "['" + p + "']" + (i < path.length - 1 ? '.children' : '') // yes I know this is fucking ugly as hell I am also hating myself for this at least a bit
+      })
+      if (options?.purge) { // if purge then delete if in any way
+        _.unset(this.structure, pathWay)
+      } else {
+        if (path.length > 0 && options?.parentIds.some(p => p === path[path.length - 2])) { // checks if the found path is part of the partentIds before deleting otherwise will skip
+          _.unset(this.structure, pathWay) // this deletes the key
+        }
+      }
+    }
+  }
+
+  async _updatedId (id, options) {
+    const space = this._findSpace(id)
+    if (space && !options.parentId) {
+      return await this._applyUpdate(id, options)
+    } else {
+      return await this._applyUpdate(options?.parentId, options)
+    }
+  }
+
+  async _applyUpdate (id, options) {
+    const startTime = Date.now()
+    const max = options.max ? options.max : this.configService.get('fetch.max')
+    const depth = options.depth ? options.depth : this.configService.get('fetch.depth')
+
+    const idsToApplyFullStaeUpdate = []
+
+    const allSpaces = await this.getAllSpaces(id, { max, depth, noLog: true })
+    _.forEach(allSpaces, (spaceContent, spaceId) => {
+      idsToApplyFullStaeUpdate.push(spaceId)
+      const abstract = this.getAbstract(spaceId)
+      if (abstract?.parents) idsToApplyFullStaeUpdate.concat(abstract?.parents)
+    })
+    console.log(idsToApplyFullStaeUpdate)
+
+    console.log('Fetched ' + (Date.now() - startTime))
+    _.forEach(allSpaces, ele => {
+      this._allRawSpaces[ele.room_id] = ele
+    })
+    console.log('Fetched after ' + (Date.now() - startTime))
+    const generatedStrucute = this.generateStructure(this._allRawSpaces, this.configService.get('matrix.root_context_space_id'), {})
+    const structure = {}
+    structure[generatedStrucute.room_id] = generatedStrucute
+    console.log('Struct ' + (Date.now() - startTime))
+    this.allSpaces = await this.generateAllSpaces(this._allRawSpaces, { noLog: true }, idsToApplyFullStaeUpdate)
+    console.log('Spaces generated ' + (Date.now() - startTime))
+    this.structure = structure
+
+    const filtedObjects = _.filter(this.allSpaces, space => space.type === 'item').map(space => { return { [space.id]: space } })
+
+    filtedObjects.forEach(ele => {
+      this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
+    })
+    console.log('End ' + (Date.now() - startTime))
+    return this.getAbstract(id)
   }
 }

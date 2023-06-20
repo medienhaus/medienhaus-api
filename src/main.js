@@ -35,6 +35,10 @@ async function bootstrap () {
     app.setGlobalPrefix(process.env.GLOBAL_URL_PREFIX)
   }
   app.enableCors()
-  await app.listen(3009)
+  if (process.env.API_PORT) {
+    await app.listen(process.env.API_PORT)
+  } else {
+    await app.listen(3009)
+  }
 }
 bootstrap()
