@@ -92,7 +92,7 @@ export class ItemService {
 
   async getBatch (spaceId, options, batch, hirachy) {
     this.batchCounter++
-    Logger.log('batch:\t' + this.batchCounter)
+    if (!options?.noLog) Logger.log('batch:\t' + this.batchCounter)
     // console.log(await matrixClient.getRoomHierarchy("!YCztLjuiNnMHWFPUVP:stechlin-institut.ruralmindshift.org", options.max, options.depth))
     const hierarchyBatch = batch ? await this.matrixClient.getRoomHierarchy(spaceId, options.max, options.depth, false, batch) : await this.matrixClient.getRoomHierarchy(spaceId, options.max, options.depth)
     //! hierarchyBatch.next_batch ? hirachy :
@@ -117,7 +117,7 @@ export class ItemService {
     hierarchy?.rooms.forEach(space => {
       ret[space.room_id] = space
     })
-    Logger.log(Object.keys(ret).length)
+    if (!options?.noLog) Logger.log(Object.keys(ret).length)
     for await (const [i, space] of hierarchy?.rooms.entries()) {
       // await Promise.all(hierarchy?.rooms.map(async (space) => {
       const stateEvents = await this.matrixClient.roomState(space?.room_id).catch((e) => { console.log(space?.room_id) })
@@ -125,7 +125,7 @@ export class ItemService {
         ret[space?.room_id].stateEvents = stateEvents
       }
       await new Promise(r => setTimeout(r, 1))
-      Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
+      if (!options?.noLog) Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
       // }))
     }
     return ret
@@ -153,25 +153,37 @@ export class ItemService {
     }
   }
 
-  async generateAllSpaces (rawSpaces) {
+  async generateAllSpaces (rawSpaces, options, idsToApplyFullStaeUpdate) {
     const ret = {}
-
     // await Promise.all(_.map(rawSpaces, async (space,i) => {
     for await (const [i, s] of Object.keys(rawSpaces).entries()) {
       const space = rawSpaces[s]
-      const extendedData = await this.getStateData(space.stateEvents, space.room_id, rawSpaces)
-      if (extendedData) {
-        ret[space.room_id] = { id: space.room_id, ...extendedData }
+
+      const extendedRet = await this.getStateData(space.stateEvents, space.room_id, rawSpaces, idsToApplyFullStaeUpdate)
+      const extendedData = extendedRet?.space
+
+      if (extendedRet?.rawSpaces) {
+        this._allRawSpaces = extendedRet?.rawSpaces
       }
-      await new Promise(r => setTimeout(r, 10))
-      Logger.log('get members:\t' + i + '/' + Object.keys(rawSpaces).length)
+
+      if (extendedData) {
+        if (extendedData.type === 'item') {
+          // if (extendedData.published === 'public') {
+          ret[space.room_id] = { id: space.room_id, ...extendedData }
+        //  }
+        } else {
+          ret[space.room_id] = { id: space.room_id, ...extendedData }
+        }
+      }
+
+      if (!options?.noLog) Logger.log('get members:\t' + i + '/' + Object.keys(rawSpaces).length)
       //  }))
     }
 
     return ret
   }
 
-  async getStateData (stateEvents, spaceId, rawSpaces) {
+  async getStateData (stateEvents, spaceId, rawSpaces, idsToApplyFullStaeUpdate) {
     const metaEvent = _.find(stateEvents, { type: 'dev.medienhaus.meta' })
     //   if (!metaEvent) console.log(spaceId)
     if (!metaEvent) return
@@ -182,19 +194,38 @@ export class ItemService {
     const joinRulesEvent = _.find(stateEvents, { type: 'm.room.join_rules' })
 
     const parent = {}
-    const parents = []
+    let parents = []
+    if (idsToApplyFullStaeUpdate) { // only for fetch to not go through all the arrays over and over again
+      if (idsToApplyFullStaeUpdate.includes(spaceId)) {
+        _.forEach(rawSpaces, space => {
+          const children = (_.filter(space.stateEvents, event => event.type === 'm.space.child'))
 
-    _.forEach(rawSpaces, space => {
-      const children = (_.filter(space.stateEvents, event => event.type === 'm.space.child'))
+          _.forEach(children, child => {
+            if (child?.state_key === spaceId) {
+              if (Object.keys(child?.content).length !== 0) {
+                parents.push({ name: space.name, room_id: space.room_id })
+              }
+            }
+          })
+        })
+        rawSpaces[spaceId].parentIds = parents
+      } else {
+        parents = rawSpaces[spaceId].parentIds
+      }
+    } else {
+      _.forEach(rawSpaces, space => {
+        const children = (_.filter(space.stateEvents, event => event.type === 'm.space.child'))
 
-      _.forEach(children, child => {
-        if (child?.state_key === spaceId) {
-          parents.push({ name: space.name, room_id: space.room_id })
-          parent.name = space.name
-          parent.room_id = space.room_id
-        }
+        _.forEach(children, child => {
+          if (child?.state_key === spaceId) {
+            if (Object.keys(child?.content).length !== 0) {
+              parents.push({ name: space.name, room_id: space.room_id })
+            }
+          }
+        })
       })
-    })
+      rawSpaces[spaceId].parentIds = parents
+    }
 
     let published
     let topicEn
@@ -209,7 +240,15 @@ export class ItemService {
 
     let languageSpaces
 
-    const joinedMembers = await this.matrixClient.getJoinedRoomMembers(spaceId).catch((e) => { console.log(spaceId) })
+    let joinedMembers = {}
+    if (!rawSpaces[spaceId].joinedMembers) {
+      joinedMembers = await this.matrixClient.getJoinedRoomMembers(spaceId).catch((e) => { console.log(spaceId) })
+      rawSpaces[spaceId].joinedMembers = joinedMembers
+      await new Promise(r => setTimeout(r, 1))
+    } else {
+      joinedMembers = rawSpaces[spaceId].joinedMembers
+    }
+
     const users = _.find(stateEvents, { type: 'm.room.power_levels' })?.content?.users
     const authors = _.map(joinedMembers?.joined, (member, memberId) => _.some(users, (userData, userId) => userId === memberId && userData >= 50 && memberId !== this.configService.get('matrix.user_id'))
       ? {
@@ -928,7 +967,6 @@ export class ItemService {
       name: space?.name,
       template: space?.template,
       type: space?.type,
-      allocation: space?.allocation,
       thumbnail: space?.thumbnail,
       description: {
         default: space?.topicEn,
@@ -1384,7 +1422,6 @@ export class ItemService {
       const abstract = this.getAbstract(spaceId)
       if (abstract?.parents) idsToApplyFullStaeUpdate.concat(abstract?.parents)
     })
-    console.log(idsToApplyFullStaeUpdate)
 
     console.log('Fetched ' + (Date.now() - startTime))
     _.forEach(allSpaces, ele => {
