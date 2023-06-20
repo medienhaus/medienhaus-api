@@ -24,7 +24,7 @@ export class AppController {
 
   @Get('/api/v1/allSpaces')
   apiGetAllSpaces () {
-    return this.itemService.getAllSpaces()
+    return this.itemService._getAllSpaces()
   }
 
   @Get('/api/v1/allWithLocation')
