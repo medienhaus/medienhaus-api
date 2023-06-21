@@ -256,6 +256,20 @@ export class ItemService {
         }
       : '')
 
+    let descriptions = languageSpaces?.map(lang => { return { id: lang?.room_id, name: lang?.name, topic: lang?.topic } })
+
+    const ownTopic = (_.find(stateEvents, { type: 'm.room.topic' }))?.content?.topic // get topic from the space itself additionally to the topice from the language spaces
+
+    if (ownTopic) {
+      if (!descriptions) { // no langage space topcis found, this means that it has no language spaces
+        if (ownTopic) { // if a topic in the space itself exists add it as default as the only one
+          descriptions = [{ name: 'default', topic: ownTopic }]
+        }
+      } else { // if langage spaces exists lets check if an space topic exists as well and lets concat it to the existings ones as default
+        descriptions.push({ name: 'default', topic: ownTopic })
+      }
+    }
+
     if (metaEvent?.content?.template !== 'lang' && !(this.configService.get('attributable.spaceTypes.content').some(f => f === metaEvent?.content?.template))) {
       const potentialChildren = stateEvents.filter(event => event.type === 'm.space.child').map(child => child.state_key).map(id => {
         const r = _.find(rawSpaces, rawSpace => rawSpace.room_id === id)
@@ -337,7 +351,7 @@ export class ItemService {
         type: metaEvent?.content?.type,
         topicDe,
         languages: languageSpaces?.map(lang => lang.name),
-        descriptions: languageSpaces?.map(lang => { return { id: lang?.room_id, name: lang?.name, topic: lang?.topic } }),
+        descriptions,
         parent: parent.name,
         parentSpaceId: parent.room_id,
         parents,
