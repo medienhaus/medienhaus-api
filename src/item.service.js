@@ -58,8 +58,6 @@ export class ItemService {
     this.structure = structure
     this.contents = []
 
-    // console.log(_.find(this._allRawSpaces,space => space.room_id === '!klLhNzPtFJxaLFQJKB:stechlin-institut.ruralmindshift.org'))
-
     const filtedObjects = _.filter(this.allSpaces, space => space.type === 'item').map(space => { return { [space.id]: space } })
 
     filtedObjects.forEach(ele => {
@@ -332,23 +330,26 @@ export class ItemService {
 
     if (metaEvent?.content?.deleted) return
     return {
-      name: spaceName,
-      template: metaEvent?.content?.template,
-      topicEn,
-      type: metaEvent?.content?.type,
-      topicDe,
-      languages: languageSpaces?.map(lang => lang.name),
-      descriptions: languageSpaces?.map(lang => { return { id: lang?.room_id, name: lang?.name, topic: lang?.topic } }),
-      parent: parent.name,
-      parentSpaceId: parent.room_id,
-      parents,
-      authors,
-      published,
-      children,
-      allocation: { physical: allocationEvent?.content?.physical, temporal: allocationEvent?.content?.temporal },
-      tags: tagEvent?.content?.tags,
-      thumbnail: thumbnailMxc ? this.matrixClient.mxcUrlToHttp(thumbnailMxc, 800, 800, 'scale') : '',
-      thumbnail_full_size: thumbnailMxc ? this.matrixClient.mxcUrlToHttp(thumbnailMxc) : ''
+      space: {
+        name: spaceName,
+        template: metaEvent?.content?.template,
+        topicEn,
+        type: metaEvent?.content?.type,
+        topicDe,
+        languages: languageSpaces?.map(lang => lang.name),
+        descriptions: languageSpaces?.map(lang => { return { id: lang?.room_id, name: lang?.name, topic: lang?.topic } }),
+        parent: parent.name,
+        parentSpaceId: parent.room_id,
+        parents,
+        authors,
+        published,
+        children,
+        allocation: { physical: allocationEvent?.content?.physical, temporal: allocationEvent?.content?.temporal },
+        tags: tagEvent?.content?.tags,
+        thumbnail: avatar?.content.url ? this.matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'scale') : '',
+        thumbnail_full_size: avatar?.content.url ? this.matrixClient.mxcUrlToHttp(avatar?.content.url) : ''
+      },
+      rawSpaces
     }
   }
 
