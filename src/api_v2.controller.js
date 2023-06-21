@@ -72,6 +72,18 @@ export class ApiV2Controller {
     return this.itemService.getItemsFilteredByItems(id)
   }
 
+  @Get('/api/v2/:id/detailedList/filter/type/item')
+  @Bind(Param())
+  apiGetDetailedListFilteredByItems ({ id }) {
+    return this.itemService.getDetailedItemsFilteredByItems(id)
+  }
+
+  @Post('/api/v2/:id/detailedList/filter/type/item')
+  @Bind(Body(), Param())
+  apiPostDetailedListFilteredByItems (body, { id }) {
+    return this.itemService.getDetailedItemsFilteredByItems(id, body?.depth)
+  }
+
   @Get('/api/v2/:id/render/json')
   @Bind(Param())
   apiGetRenderedJson ({ id }) {
