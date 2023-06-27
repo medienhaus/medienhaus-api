@@ -701,6 +701,15 @@ export class ItemService {
         const formattedContent = (() => {
           switch (template) {
           // For text, ul and ol we just return whatever's stored in the Matrix event's formatted_body
+            case 'heading':
+              if (lastMessage?.content?.body?.includes('### ')) {
+                const normalizedContent = lastMessage?.content?.body.split('### ')[1]
+                return Handlebars.compile(fs.readFileSync(join(__dirname, '..', 'views', 'contentBlocks', 'heading.hbs'), 'utf8'))({
+                  normalizedContent,
+                  matrixEventContent: lastMessage.content
+                })
+              }
+              break
             case 'text':
             case 'ul':
             case 'ol':

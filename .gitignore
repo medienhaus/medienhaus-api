@@ -3,3 +3,5 @@ config.js
 configDev.js
 config.*.js
 .env
+config.dev.js
+.DS_Store
