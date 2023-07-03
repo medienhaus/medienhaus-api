@@ -298,10 +298,12 @@ export class ItemService {
         languageSpaces = languageSpaceIds.map(languageSpace => {
           return _.find(rawSpaces, room => room.room_id === languageSpace)
         })
+
         if (!languageSpaces) {
           // console.log('bing')
           return
         }
+
         // fetch descriptions
         const en = languageSpaces.filter(room => room?.name === 'en')
         topicEn = en[0] ? en[0].topic : ''
@@ -591,7 +593,7 @@ export class ItemService {
       return null
     }
 
-    console.log(this.items[id])
+
     if (this.items[id].content) return this.items[id]
     const { content, formattedContent } = await this.getContent(id, language)
     return { ...this.items[id], content, formatted_content: formattedContent }
@@ -1079,8 +1081,15 @@ export class ItemService {
     const abstract = this.getAbstract(id)
     const languages = {}
 
+
     for await (const [i, language] of this.items[id]?.languages.entries()) {
-      languages[language.toUpperCase()] = await this.getContent(id, language)
+      // languages[language.toUpperCase()] = await this.getContent(id, language)
+
+      try {
+        languages[language.toUpperCase()] = await this.asyncCallWithTimeout(this.getContent(id, language), 15000)
+      } catch (err) {
+        continue
+      }
     }
 
     const matrixClient = createMatrixClient({
@@ -1427,7 +1436,6 @@ export class ItemService {
       const children = _.map(_.filter(matrixReq?.rooms, room => parent !== room.room_id), room => room.room_id)
       parents[parent] = children
     }
-    console.log(parents)
     return parents
   }
 
@@ -1496,5 +1504,28 @@ export class ItemService {
     })
     console.log('End ' + (Date.now() - startTime))
     return this.getAbstract(id)
+  }
+
+  /**
+ * https://javascript.plainenglish.io/how-to-add-a-timeout-limit-to-asynchronous-javascript-functions-3676d89c186d
+ * Call an async function with a maximum time limit (in milliseconds) for the timeout
+ * @param {Promise<any>} asyncPromise An asynchronous promise to resolve
+ * @param {number} timeLimit Time limit to attempt function in milliseconds
+ * @returns {Promise<any> | undefined} Resolved promise for async function call, or an error if time limit reached
+ */
+  async asyncCallWithTimeout (asyncPromise, timeLimit) {
+    let timeoutHandle
+
+    const timeoutPromise = new Promise((_resolve, reject) => {
+      timeoutHandle = setTimeout(
+        () => reject(new Error('Async call timeout limit reached')),
+        timeLimit
+      )
+    })
+
+    return Promise.race([asyncPromise, timeoutPromise]).then(result => {
+      clearTimeout(timeoutHandle)
+      return result
+    })
   }
 }
