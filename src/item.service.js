@@ -50,7 +50,12 @@ export class ItemService {
 
     const allSpaces = await this.getAllSpaces(this.configService.get('matrix.root_context_space_id'), { max: this.configService.get('fetch.max'), depth: this.configService.get('fetch.depth') })
     Logger.log(`Found ${Object.keys(allSpaces).length} spaces`)
-    const generatedStrucute = this.generateStructure(allSpaces, this.configService.get('matrix.root_context_space_id'), {})
+
+    const generatedStrucute = this.generateStructure(
+      _.filter(allSpaces, space => { if (!((_.find(space?.stateEvents, { type: 'dev.medienhaus.meta' }))?.content?.deleted)) return space }),
+      this.configService.get('matrix.root_context_space_id'),
+      {}
+    )
     const structure = {}
     structure[generatedStrucute.room_id] = generatedStrucute
     this._allRawSpaces = allSpaces
@@ -302,6 +307,7 @@ export class ItemService {
           // console.log('bing')
           return
         }
+
         // fetch descriptions
         const en = languageSpaces.filter(room => room?.name === 'en')
         topicEn = en[0] ? en[0].topic : ''
@@ -350,7 +356,7 @@ export class ItemService {
         topicEn,
         type: metaEvent?.content?.type,
         topicDe,
-        languages: languageSpaces?.map(lang => lang.name),
+        languages: languageSpaces?.map(lang => lang?.name),
         descriptions,
         parent: parent.name,
         parentSpaceId: parent.room_id,
@@ -701,6 +707,15 @@ export class ItemService {
         const formattedContent = (() => {
           switch (template) {
           // For text, ul and ol we just return whatever's stored in the Matrix event's formatted_body
+            case 'heading':
+              if (lastMessage?.content?.body?.includes('### ')) {
+                const normalizedContent = lastMessage?.content?.body.split('### ')[1]
+                return Handlebars.compile(fs.readFileSync(join(__dirname, '..', 'views', 'contentBlocks', 'heading.hbs'), 'utf8'))({
+                  normalizedContent,
+                  matrixEventContent: lastMessage.content
+                })
+              }
+              break
             case 'text':
             case 'ul':
             case 'ol':
