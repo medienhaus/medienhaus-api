@@ -821,7 +821,7 @@ export class ItemService {
 
     const rawSpace = _.find(this._allRawSpaces, { room_id: id })
     const parentIds = []
-    if (space?.parents.length > 0) {
+    if (space?.parents?.length > 0) {
       space.parents.forEach(parent => {
         if (!(parentIds.indexOf(parent.room_id) > -1)) {
           parentIds.push(parent.room_id)
@@ -1094,7 +1094,7 @@ export class ItemService {
     const abstract = this.getAbstract(id)
     const languages = {}
 
-    for await (const [i, language] of this.items[id]?.languages.entries()) {
+    for await (const [i, language] of this.items[id]?.languages?.entries()) {
       languages[language.toUpperCase()] = await this.getContent(id, language)
     }
 
@@ -1230,7 +1230,7 @@ export class ItemService {
   }
 
   _transformAbstractToGraphQl (space) {
-    const ret = space
+    const ret = JSON.parse(JSON.stringify(space))
     ret.parents = space?.parents?.map(parent => { return { id: parent } })
     return space
   }
