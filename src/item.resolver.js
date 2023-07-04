@@ -57,6 +57,7 @@ export class ItemResolver {
   @Query()
   @Bind(Args())
   async items ({ pagination, start = 0, offset, template }) {
+    //const spaces = this.itemService.getSpaces(template, 'item', this.itemService.convertSpaces(this.itemService.allSpaces))
     const spaces = this.itemService.getSpaces(template, 'item')
     if (!pagination) return spaces
 

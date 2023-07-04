@@ -1200,33 +1200,39 @@ export class ItemService {
     return user
   }
 
-  getSpaces (template, type) {
+  getSpaces (template, type, allSpaces) {
     let spaces = []
     if (type && ((type === 'item') || (type === 'content') || (type === 'context'))) {
-      spaces = _.map(this.allSpaces, (space) => {
+      spaces = _.map(allSpaces || this.allSpaces, (space) => {
         if (space?.type === type) {
-          return space
+          return this._transformAbstractToGraphQl(this.getAbstract(space.id))
         }
       })
     }
 
     if (template) {
       if (!(spaces?.length > 0)) {
-        spaces = _.map(this.allSpaces, (space) => space)
+        spaces = _.map(allSpaces || this.allSpaces, (space) => space)
       }
       const allowedTemplates = [...this.configService.get('attributable.spaceTypes.item'), ...this.configService.get('attributable.spaceTypes.content'), ...this.configService.get('attributable.spaceTypes.context')]
       spaces = _.filter(spaces, space => {
         if (space?.template === template && allowedTemplates.some(f => f === space?.template)) {
-          return space
+          return this._transformAbstractToGraphQl(this.getAbstract(space.id))
         }
       })
     }
 
     if (!template && !type && !spaces?.length > 0) { // if not template and not type defined just get the raw information. it is done this way to pevent to cyle to many times through the full array
-      spaces = _.map(this.allSpaces, (space) => space)
+      spaces = _.map(allSpaces || this.allSpaces, (space) => space)
     }
 
     return _.compact(spaces)
+  }
+
+  _transformAbstractToGraphQl (space) {
+    const ret = space
+    ret.parents = space?.parents?.map(parent => { return { id: parent } })
+    return space
   }
 
   // converting to type orientated schema from graphql. This is such a mess, rewrite highly needed!
