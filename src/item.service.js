@@ -22,6 +22,8 @@ export class ItemService {
     this.allSpaces = {}
     this._allRawSpaces = {}
 
+    this.graphQlCache = {}
+
     // Initializing custom caching arrays specifically for the graphql data interface.
     // All of this chaos needs to get rid of in the rewrite of this api
     this.servers = []
@@ -57,6 +59,7 @@ export class ItemService {
       {}
     )
     const structure = {}
+    this.graphQlCache = {}
     structure[generatedStrucute.room_id] = generatedStrucute
     this._allRawSpaces = allSpaces
     this.allSpaces = await this.generateAllSpaces(allSpaces)
@@ -1205,7 +1208,7 @@ export class ItemService {
     if (type && ((type === 'item') || (type === 'content') || (type === 'context'))) {
       spaces = _.map(allSpaces || this.allSpaces, (space) => {
         if (space?.type === type) {
-          return this._transformAbstractToGraphQl(this.getAbstract(space.id))
+          return this._getGraphQlAbstract(space.id)
         }
       })
     }
@@ -1217,7 +1220,7 @@ export class ItemService {
       const allowedTemplates = [...this.configService.get('attributable.spaceTypes.item'), ...this.configService.get('attributable.spaceTypes.content'), ...this.configService.get('attributable.spaceTypes.context')]
       spaces = _.filter(spaces, space => {
         if (space?.template === template && allowedTemplates.some(f => f === space?.template)) {
-          return this._transformAbstractToGraphQl(this.getAbstract(space.id))
+          return this._getGraphQlAbstract(space.id)
         }
       })
     }
@@ -1227,6 +1230,15 @@ export class ItemService {
     }
 
     return _.compact(spaces)
+  }
+
+  _getGraphQlAbstract (id) {
+    let cached = this.graphQlCache[id]
+    if (!cached) {
+      cached = this._transformAbstractToGraphQl(this.getAbstract(id))
+      this.graphQlCache[id] = cached
+    }
+    return cached
   }
 
   _transformAbstractToGraphQl (space) {
@@ -1350,6 +1362,7 @@ export class ItemService {
     const spaceRaw = this._allRawSpaces[id]
     const spaceItems = this.items[id]
     const spaceAllSpaces = this.allSpaces[id]
+    delete this.graphQlCache[id]
 
     if (!spaceRaw || !spaceAbstract || !spaceAllSpaces) {
       return
@@ -1476,6 +1489,7 @@ export class ItemService {
 
   async _updatedId (id, options) {
     const space = this._findSpace(id)
+    delete this.graphQlCache[id]
     if (space && !options.parentId) {
       return await this._applyUpdate(id, options)
     } else {
