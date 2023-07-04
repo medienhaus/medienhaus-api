@@ -1232,7 +1232,7 @@ export class ItemService {
   _transformAbstractToGraphQl (space) {
     const ret = JSON.parse(JSON.stringify(space))
     ret.parents = space?.parents?.map(parent => { return { id: parent } })
-    return space
+    return ret
   }
 
   // converting to type orientated schema from graphql. This is such a mess, rewrite highly needed!
