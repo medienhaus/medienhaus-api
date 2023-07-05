@@ -369,7 +369,7 @@ export class ItemService {
         children,
         allocation: { physical: allocationEvent?.content?.physical, temporal: allocationEvent?.content?.temporal },
         tags: tagEvent?.content?.tags,
-        thumbnail: avatar?.content.url ? this.matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'scale') : '',
+        thumbnail: avatar?.content.url ? this.matrixClient.mxcUrlToHttp(avatar?.content.url, 800, 800, 'crop') : '',
         thumbnail_full_size: avatar?.content.url ? this.matrixClient.mxcUrlToHttp(avatar?.content.url) : ''
       },
       rawSpaces
