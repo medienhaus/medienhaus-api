@@ -1276,7 +1276,11 @@ export class ItemService {
       description: space?.descriptions?.map(desc => this.convertDescription(desc?.id, desc)),
       thumbnail: space?.thumbnail,
       thumbnail_full_size: space?.thumbnail_full_size,
-      parents: _.map(space?.parents, parent => this.convertSpace(this._findSpace(parent?.room_id))),
+      parents: _.map(space?.parents, (parent) => { return this._getGraphQlAbstract(parent?.room_id) }),
+      // parents: _.map(space?.parents, parent => {
+      //   this.convertSpace(parent?.room_id, this._findSpace(parent?.room_id))
+      // }), // endless loop needs to be fixed later
+      allocation: space?.allocation,
       origin: this.convertOrigin(id, { application: [], server: [], authors: space?.authors }) // still contains placeholder which needs to be fixed in the future
     }
   }
