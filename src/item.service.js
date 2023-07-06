@@ -600,7 +600,7 @@ export class ItemService {
       return null
     }
 
-    console.log(this.items[id])
+    // console.log(this.items[id])
     if (this.items[id].content) return this.items[id]
     const { content, formattedContent } = await this.getContent(id, language)
     return { ...this.items[id], content, formatted_content: formattedContent }
@@ -1205,12 +1205,19 @@ export class ItemService {
 
   getSpaces (template, type, allSpaces) {
     let spaces = []
+    if (!allSpaces) allSpaces = this.allSpaces
     if (type && ((type === 'item') || (type === 'content') || (type === 'context'))) {
-      spaces = _.map(allSpaces || this.allSpaces, (space) => {
+      spaces = _.reduce(allSpaces, (result, space) => {
         if (space?.type === type) {
-          return this._getGraphQlAbstract(space.id)
+          result.push(this._getGraphQlAbstract(space.id))
         }
-      })
+        return result
+      }, [])
+    }
+
+    if (type === 'item') {
+      // check for drafts and filter them out
+      spaces = _.filter(spaces, (space) => this.items[space?.id] !== _.isNil && this.items[space?.id]?.published === 'public')
     }
 
     if (template) {
