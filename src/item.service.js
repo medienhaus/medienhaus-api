@@ -1395,7 +1395,7 @@ export class ItemService {
     // modify parents
     const parents = this._getParentsOfId(id)
     // and stateEvents of parents
-    parents.forEach(parent => {
+    parents?.forEach(parent => {
       // check if purge from all parent or just specific ones
       if (!options?.purge) {
         if (!options?.parentIds.some(p => p === parent)) { // if parent is not included in parentIds from the call then this will not be deleted
