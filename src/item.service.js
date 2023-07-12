@@ -442,7 +442,19 @@ export class ItemService {
           return;
         }
         languageSpaces = languageSpaceIds.map((languageSpace) => {
-          return _.find(rawSpaces, (room) => room.room_id === languageSpace);
+          const langSpace = _.find(
+            rawSpaces,
+            (room) => room.room_id === languageSpace
+          );
+
+          if (!langSpace) return;
+
+          descriptions.push({
+            name: langSpace?.name?.toUpperCase(),
+            topic: langSpace?.topic,
+          });
+
+          return langSpace;
         });
         if (!languageSpaces) {
           // console.log('bing')
