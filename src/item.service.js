@@ -372,8 +372,12 @@ export class ItemService {
 
     if (metaEvent?.content?.credit?.length > 0) {
       metaEvent?.content?.credit.forEach((credit) => {
+        let tempId = "" + this.configService.get("matrix.user_id");
+        tempId = tempId.split(":")[0];
+        tempId = "@donotuse-" + this.makeid(15) + ":" + tempId;
+
         authors.push({
-          id: this.configService.get("matrix.user_id"),
+          id: tempId,
           name: credit,
         });
       });
@@ -449,10 +453,12 @@ export class ItemService {
 
           if (!langSpace) return;
 
-          descriptions.push({
-            name: langSpace?.name?.toUpperCase(),
-            topic: langSpace?.topic,
-          });
+          if (langSpace?.name && langSpace?.topic) {
+            descriptions.push({
+              name: langSpace?.name?.toUpperCase(),
+              topic: langSpace?.topic,
+            });
+          }
 
           return langSpace;
         });
@@ -2020,5 +2026,19 @@ export class ItemService {
     });
     console.log("End " + (Date.now() - startTime));
     return this.getAbstract(id);
+  }
+
+  makeid(length) {
+    //origin: https://stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
+    let result = "";
+    const characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const charactersLength = characters.length;
+    let counter = 0;
+    while (counter < length) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      counter += 1;
+    }
+    return result;
   }
 }
