@@ -1697,6 +1697,8 @@ export class ItemService {
     space.context = types.context;
     space.content = types.content;
 
+    if (!space || space?.published === "draft") return;
+
     return {
       id: space?.id,
       name: space?.name,
