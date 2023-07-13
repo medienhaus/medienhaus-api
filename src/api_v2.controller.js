@@ -127,4 +127,22 @@ export class ApiV2Controller {
   apiPostFetch (body, params) {
     return this.itemService.postFetch(params.id, { parentId: body?.parentId })
   }
+
+  @Get('/dev/rawSpaces')
+  @Bind(Param())
+  apiGetRawSpaces () {
+    return this.itemService._allRawSpaces
+  }
+
+  @Get('/dev/allSpaces')
+  @Bind(Param())
+  apiGetAllSpaces () {
+    return this.itemService.allSpaces
+  }
+
+    @Get('/dev/items')
+  @Bind(Param())
+  apiGetAllItems () {
+    return this.itemService.items
+  }
 }
