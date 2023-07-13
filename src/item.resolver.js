@@ -5,32 +5,32 @@ import {
   Resolver,
   Query,
   Args,
-  ObjectType,
-} from "@nestjs/graphql";
-import { Bind, Dependencies, NotFoundException } from "@nestjs/common";
-import { AppService } from "./app.service";
-import _ from "lodash";
+  ObjectType
+} from '@nestjs/graphql'
+import { Bind, Dependencies, NotFoundException } from '@nestjs/common'
+import { AppService } from './app.service'
+import _ from 'lodash'
 
-@Resolver("Space")
-@Dependencies(AppService, "ITEM_PROVIDER")
+@Resolver('Space')
+@Dependencies(AppService, 'ITEM_PROVIDER')
 export class ItemResolver {
-  constructor(appService, itemService) {
-    this.appService = appService;
-    this.itemService = itemService;
+  constructor (appService, itemService) {
+    this.appService = appService
+    this.itemService = itemService
   }
 
   @Query()
   @Bind(Args())
-  async entries({ template, type }) {
+  async entries ({ template, type }) {
     return this.itemService.convertSpaces(
       this.itemService.getSpaces(template, type)
-    );
+    )
   }
 
   @Query()
   @Bind(Args())
-  async entry({ id }) {
-    return this.itemService.convertSpace(id);
+  async entry ({ id }) {
+    return this.itemService.convertSpace(id)
   }
 
   // META TYPES
@@ -39,26 +39,26 @@ export class ItemResolver {
 
   @Query()
   @Bind(Args())
-  async context({ id }) {
-    if (!id) return {};
-    const space = this.itemService.convertSpace(id);
-    if (space && space?.type === "context") {
-      return space;
+  async context ({ id }) {
+    if (!id) return {}
+    const space = this.itemService.convertSpace(id)
+    if (space && space?.type === 'context') {
+      return space
     } else {
-      throw new NotFoundException();
+      throw new NotFoundException()
     }
   }
 
   @Query()
   @Bind(Args())
-  async contexts({ pagination, start = 0, offset, template }) {
-    const spaces = this.itemService.getSpaces(template, "context");
-    if (!pagination) return spaces;
+  async contexts ({ pagination, start = 0, offset, template }) {
+    const spaces = this.itemService.getSpaces(template, 'context')
+    if (!pagination) return spaces
 
     if (offset) {
-      return spaces.slice(start, start + offset);
+      return spaces.slice(start, start + offset)
     } else {
-      return spaces.slice(start);
+      return spaces.slice(start)
     }
   }
 
@@ -66,27 +66,27 @@ export class ItemResolver {
 
   @Query()
   @Bind(Args())
-  async items({ pagination, start = 0, offset, template }) {
-    //const spaces = this.itemService.getSpaces(template, 'item', this.itemService.convertSpaces(this.itemService.allSpaces))
-    const spaces = this.itemService.getSpaces(template, "item");
-    if (!pagination) return spaces;
+  async items ({ pagination, start = 0, offset, template }) {
+    // const spaces = this.itemService.getSpaces(template, 'item', this.itemService.convertSpaces(this.itemService.allSpaces))
+    const spaces = this.itemService.getSpaces(template, 'item')
+    if (!pagination) return spaces
 
     if (offset) {
-      return spaces.slice(start, start + offset);
+      return spaces.slice(start, start + offset)
     } else {
-      return spaces.slice(start);
+      return spaces.slice(start)
     }
   }
 
   @Query()
   @Bind(Args())
-  async item({ id }) {
-    if (!id) return {};
-    const space = this.itemService.convertSpace(id);
-    if (space && space?.type === "item") {
-      return space;
+  async item ({ id }) {
+    if (!id) return {}
+    const space = this.itemService.convertSpace(id)
+    if (space && space?.type === 'item') {
+      return space
     } else {
-      throw new NotFoundException();
+      throw new NotFoundException()
     }
   }
 
@@ -99,14 +99,14 @@ export class ItemResolver {
   //  CONTENT
 
   @Query()
-  async contents() {
-    return this.itemService.contents;
+  async contents () {
+    return this.itemService.contents
   }
 
   @Query()
   @Bind(Args())
-  async content({ id }) {
-    return {};
+  async content ({ id }) {
+    return {}
   }
 
   // @Query()
@@ -119,29 +119,29 @@ export class ItemResolver {
 
   @Query()
   @Bind(Args())
-  async user({ id }) {
-    return this.itemService.getUser(id);
+  async user ({ id }) {
+    return this.itemService.getUser(id)
   }
 
   @Query()
-  async users() {
+  async users () {
     return _.map(this.itemService.users, (user) =>
       this.itemService.getUser(user.id)
-    );
+    )
   }
 
   // SERVER
 
   @Query()
   @Bind(Args())
-  async server({ url }) {
-    return this.itemService.getServer(url);
+  async server ({ url }) {
+    return this.itemService.getServer(url)
   }
 
   @Query()
-  async servers() {
+  async servers () {
     return _.map(this.itemService.servers, (server) =>
       this.itemService.getServer(server.url)
-    );
+    )
   }
 }
