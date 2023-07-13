@@ -9,6 +9,7 @@ import fs from 'fs'
 import { join } from 'path'
 import moment from 'moment'
 import { isNull, template } from 'lodash'
+import { LegacyInterpreter } from './legacy-interpreter.service'
 
 @Injectable()
 @Dependencies(ConfigService, HttpService)
@@ -42,9 +43,11 @@ export class ItemService {
 
     this.getAllSpaces = this.getAllSpaces.bind(this)
     this.getBatch = this.getBatch.bind(this)
+
+    this.legacyInterpreter = new LegacyInterpreter(this.configService, this.httpService, this.matrixClient)
   }
 
-  @Interval(30 * 60 * 1000) // Call this every 30 minutes
+  @Interval(120 * 60 * 1000) // Call this every 120 minutes
   async fetch () {
     if (!this.configService.get('fetch.autoFetch') && this.initiallyFetched) {
       return
@@ -73,6 +76,7 @@ export class ItemService {
       this.configService.get('matrix.root_context_space_id'),
       {}
     )
+    this.legacyInterpreter.clear()
     const structure = {}
     this.graphQlCache = {}
     structure[generatedStrucute.room_id] = generatedStrucute
@@ -278,6 +282,10 @@ export class ItemService {
     const tagEvent = _.find(stateEvents, { type: 'dev.medienhaus.tags' })
     const joinRulesEvent = _.find(stateEvents, { type: 'm.room.join_rules' })
 
+    if (metaEvent?.content?.type !== 'context' || metaEvent?.content?.type !== 'item' || metaEvent?.content?.type !== 'content') { // check if legacy from old CMS
+      return this.legacyInterpreter.convertLegacySpace(stateEvents, spaceId, rawSpaces)
+    }
+
     const parent = {}
     let parents = []
     if (idsToApplyFullStaeUpdate) {
@@ -384,6 +392,7 @@ export class ItemService {
       type: 'de.udk-berlin.rundgang'
     })?.content?.hideAuthors
     if (udkCustomHideAuthors) authors = []
+
     let descriptions = languageSpaces?.map((lang) => {
       return { id: lang?.room_id, name: lang?.name, topic: lang?.topic }
     })
@@ -815,6 +824,10 @@ export class ItemService {
       return null
     }
 
+    if (this.legacyInterpreter.isLegacy(id)) {
+      return this.legacyInterpreter.get(id, language)
+    }
+
     if (this.items[id].content) return this.items[id]
     const { content, formattedContent } = await this.getContent(id, language)
     return { ...this.items[id], content, formatted_content: formattedContent }
@@ -992,6 +1005,9 @@ export class ItemService {
                 return lastMessage.content.formatted_body
               // For all other types we render the HTML using the corresponding Handlebars template in /views/contentBlocks
               default:
+                if (!this.configService.get('attributable.spaceTypes.content').some((f) => f === template)) {
+                  return ''
+                }
                 return Handlebars.compile(
                   fs.readFileSync(
                     join(
@@ -1463,15 +1479,9 @@ export class ItemService {
     const languages = {}
 
     for await (const [i, language] of this.items[id]?.languages?.entries()) {
-      languages[language.toUpperCase()] = await this.getContent(id, language)
+      if (!language) continue
+      languages[language?.toUpperCase()] = await this.getContent(id, language)
     }
-
-    const matrixClient = createMatrixClient({
-      baseUrl: this.configService.get('matrix.homeserver_base_url'),
-      accessToken: this.configService.get('matrix.access_token'),
-      userId: this.configService.get('matrix.user_id'),
-      useAuthorizationHeader: true
-    })
 
     return {
       abstract: {
