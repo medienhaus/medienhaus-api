@@ -80,6 +80,7 @@ export class ItemService {
     this.allSpaces = await this.generateAllSpaces(allSpaces)
     this.structure = structure
     this.contents = []
+    this.batchCounter = 0
 
     const filtedObjects = _.filter(
       this.allSpaces,
@@ -370,7 +371,7 @@ export class ItemService {
     if (metaEvent?.content?.credit?.length > 0) {
       metaEvent?.content?.credit.forEach((credit) => {
         let tempId = '' + this.configService.get('matrix.user_id')
-        tempId = tempId.split(':')[0]
+        tempId = tempId.split(':')[1]
         tempId = '@donotuse-' + this.makeid(15) + ':' + tempId
 
         authors.push({
@@ -1463,7 +1464,8 @@ export class ItemService {
     const languages = {}
 
     for await (const [i, language] of this.items[id]?.languages?.entries()) {
-      languages[language.toUpperCase()] = await this.getContent(id, language)
+      if (!language) continue
+      languages[language?.toUpperCase()] = await this.getContent(id, language)
     }
 
     const matrixClient = createMatrixClient({
