@@ -950,44 +950,31 @@ export class ItemService {
 
           if (!lastMessage) return
 
-          const template = contentRoom.name.substring(
-            contentRoom.name.indexOf('_') + 1
-          )
+          const template = contentRoom.name.substring(contentRoom.name.indexOf('_') + 1)
           const content = (() => {
             switch (template) {
               case 'audio':
               case 'file':
               case 'image':
                 return matrixClient.mxcUrlToHttp(lastMessage.content.url)
-              default:
-                return lastMessage.content.body
+              default: return lastMessage.content.body
             }
           })()
           const formattedContent = (() => {
             switch (template) {
-              // For text, ul and ol we just return whatever's stored in the Matrix event's formatted_body
               case 'heading':
-                if (lastMessage?.content?.body?.includes('### ')) {
-                  const normalizedContent =
-                    lastMessage?.content?.body.split('### ')[1]
-                  return Handlebars.compile(
-                    fs.readFileSync(
-                      join(
-                        __dirname,
-                        '..',
-                        'views',
-                        'contentBlocks',
-                        'heading.hbs'
-                      ),
-                      'utf8'
-                    )
-                  )({
-                    normalizedContent,
+                if (lastMessage?.content?.body?.includes('#')) {
+                  return Handlebars.compile(fs.readFileSync(join(__dirname, '..', 'views', 'contentBlocks', 'heading.hbs'), 'utf8'))({
+                    content: lastMessage?.content.formatted_body,
                     matrixEventContent: lastMessage.content
                   })
                 }
                 break
+                // For text, ul and ol we just return whatever's stored in the Matrix event's formatted_body
               case 'text':
+                return Handlebars.compile(fs.readFileSync(join(__dirname, '..', 'views', 'contentBlocks', 'text.hbs'), 'utf8'))({
+                  content: lastMessage.content.formatted_body
+                })
               case 'ul':
               case 'ol':
                 return lastMessage.content.formatted_body
