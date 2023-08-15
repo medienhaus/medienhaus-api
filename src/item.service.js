@@ -282,7 +282,7 @@ export class ItemService {
     const tagEvent = _.find(stateEvents, { type: 'dev.medienhaus.tags' })
     const joinRulesEvent = _.find(stateEvents, { type: 'm.room.join_rules' })
 
-    if (metaEvent?.content?.type !== 'context' || metaEvent?.content?.type !== 'item' || metaEvent?.content?.type !== 'content') { // check if legacy from old CMS
+    if (!['item', 'context', 'content'].some((f) => f === metaEvent?.content?.type)) { // check if legacy from old CMS
       return this.legacyInterpreter.convertLegacySpace(stateEvents, spaceId, rawSpaces)
     }
 
@@ -1663,6 +1663,7 @@ export class ItemService {
   }
 
   _transformAbstractToGraphQl (space) {
+    if (!space) return
     const ret = JSON.parse(JSON.stringify(space))
     ret.parents = space?.parents?.map((parent) => {
       return { id: parent }
