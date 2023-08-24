@@ -125,7 +125,7 @@ export class ApiV2Controller {
   @Post('api/v2/:id/fetch')
   @Bind(Body(), Param())
   apiPostFetch (body, params) {
-    return this.itemService.postFetch(params.id, { parentId: body?.parentId })
+    return this.itemService.PostService.postFetch(params.id, { parentId: body?.parentId })
   }
 
   @Get('/dev/rawSpaces')
