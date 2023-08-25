@@ -430,7 +430,10 @@ export class ItemService {
 
       _.forEach(potentialChildren, (child) => {
         if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
-          children.push(child.room_id)
+          // Check if the potentialChild is not a outdated StateEvent and is als part of the 'children_state'. This might not work with federation, need a closer check then.
+          if (_.find(rawSpaces[spaceId]?.children_state, { state_key: child.room_id })) {
+            children.push(child.room_id)
+          }
         }
       })
 
