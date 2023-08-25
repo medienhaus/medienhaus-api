@@ -543,7 +543,7 @@ export class ItemService {
             avatar?.content.url,
             800,
             800,
-            'crop'
+            'scale'
           )
           : '',
         thumbnail_full_size: avatar?.content.url
@@ -1666,7 +1666,8 @@ export class ItemService {
     })
   }
 
-  convertSpace (id, space) {
+  convertSpace (id, space, currentDepth = 0, maxDepth = 5) {
+    if (currentDepth >= maxDepth) return
     if (!space) space = this._findSpace(id)
     if (!space) {
       return
@@ -1678,14 +1679,15 @@ export class ItemService {
     space.content = types.content
 
     if ((space?.template === 'studentproject' || space?.template === 'event') && space?.published === 'draft') return
+    currentDepth++
 
     return {
       id: space?.id,
       name: space?.name,
       type: space?.type,
       template: space?.template,
-      item: _.reduce(space?.item, (ret, item) => { const e = this.convertSpace(item?.id); if (e != null && e !== undefined && e !== '') { ret.push(item) };return ret }, []),
-      context: _.reduce(space?.context, (ret, context) => { const e = this.convertSpace(context?.id); if (e != null && e !== undefined && e !== '') { ret.push(context) };return ret }, []),
+      item: _.reduce(space?.item, (ret, item) => { const e = this.convertSpace(item?.id, null, currentDepth, maxDepth); if (e != null && e !== undefined && e !== '') { ret.push(e) };return ret }, []),
+      context: _.reduce(space?.context, (ret, context) => { const e = this.convertSpace(context?.id, null, currentDepth, maxDepth); if (e != null && e !== undefined && e !== '') { ret.push(e) };return ret }, []),
       content: _.map(space?.content, (content) =>
         this.convertSpace(content.id)
       ),
