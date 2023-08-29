@@ -6,7 +6,7 @@ import { AppService } from './app.service'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import configuration from '../config'
 import { ItemService } from './item.service'
-import { ScheduleModule } from '@nestjs/schedule'
+import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule'
 import { HttpModule, HttpService } from '@nestjs/axios'
 import { GraphQLModule } from '@nestjs/graphql'
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
@@ -36,10 +36,19 @@ import { join } from 'path'
     AppService,
     {
       provide: 'ITEM_PROVIDER',
-      inject: [ConfigService, HttpService],
-      useFactory: async (configService, httpService) => {
+      inject: [ConfigService, HttpService, SchedulerRegistry],
+      useFactory: async (configService, httpService, schedulerRegistry) => {
         const x = new ItemService(configService, httpService)
         if (x.configService.get('fetch.initalyLoad')) await x.fetch()
+
+        if (x.configService.get('fetch.interval')) {
+          const fetchCallback = async () => {
+            await x.fetch()
+          }
+          const fetchInterval = setInterval(fetchCallback, x.configService.get('fetch.interval') * 1000) // seconds to ms
+          schedulerRegistry.addInterval('fetchInterval', fetchInterval)
+        }
+
         return x
       }
     },
