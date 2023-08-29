@@ -2,7 +2,6 @@ import { Dependencies, Injectable, Logger } from '@nestjs/common'
 import { createClient as createMatrixClient } from 'matrix-js-sdk'
 import { ConfigService } from '@nestjs/config'
 import * as _ from 'lodash'
-import { Interval } from '@nestjs/schedule'
 import { HttpService } from '@nestjs/axios'
 import Handlebars from 'handlebars'
 import fs from 'fs'
@@ -10,6 +9,9 @@ import { join } from 'path'
 import moment from 'moment'
 import { isNull, template } from 'lodash'
 import { LegacyInterpreter } from './legacy-interpreter.service'
+import { Console } from 'console'
+
+export const test = 10000
 
 @Injectable()
 @Dependencies(ConfigService, HttpService)
@@ -34,6 +36,9 @@ export class ItemService {
     this.initiallyFetched = false
     this.batchCounter = 0
 
+    this.lastFetch = Date.now()
+    this.fistFetch = Date.now()
+
     this.matrixClient = createMatrixClient({
       baseUrl: this.configService.get('matrix.homeserver_base_url'),
       accessToken: this.configService.get('matrix.access_token'),
@@ -47,22 +52,21 @@ export class ItemService {
     this.legacyInterpreter = new LegacyInterpreter(this.configService, this.httpService, this.matrixClient)
   }
 
-  @Interval(120 * 60 * 1000) // Call this every 120 minutes
   async fetch () {
     if (!this.configService.get('fetch.autoFetch') && this.initiallyFetched) {
       return
     }
 
-    Logger.log('Fetching items...')
+    const fetchStart = Date.now()
 
     const allSpaces = await this.getAllSpaces(
       this.configService.get('matrix.root_context_space_id'),
       {
         max: this.configService.get('fetch.max'),
-        depth: this.configService.get('fetch.depth')
+        depth: this.configService.get('fetch.depth'),
+        noLog: this.configService.get('fetch.noLog')
       }
     )
-    Logger.log(`Found ${Object.keys(allSpaces).length} spaces`)
 
     const generatedStrucute = this.generateStructure(
       _.filter(allSpaces, (space) => {
@@ -81,7 +85,7 @@ export class ItemService {
     this.graphQlCache = {}
     structure[generatedStrucute.room_id] = generatedStrucute
     this._allRawSpaces = allSpaces
-    this.allSpaces = await this.generateAllSpaces(allSpaces)
+    this.allSpaces = await this.generateAllSpaces(allSpaces, { noLog: this.configService.get('fetch.noLog') })
     this.structure = structure
     this.contents = []
     this.batchCounter = 0
@@ -96,8 +100,6 @@ export class ItemService {
     filtedObjects.forEach((ele) => {
       this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
     })
-
-    Logger.log(`Found ${Object.keys(this.items).length} items`)
 
     // new for graphQL functionality
     _.forEach(this.allSpaces, (space) => {
@@ -123,6 +125,8 @@ export class ItemService {
       }
     })
 
+    Logger.log('Fetched ' + Object.keys(allSpaces).length + ' spaces with ' + Object.keys(this.items).length + ' items, after: ' + Math.round((Date.now() - this.fistFetch) / 10 / 60) / 100 + ' minutes,  which took: ' + (Math.round((((Date.now() - fetchStart) / 1000) * 100) / 100)) + ' seconds')
+    this.lastFetch = Date.now()
     if (!this.initiallyFetched) this.initiallyFetched = true
   }
 
@@ -147,7 +151,7 @@ export class ItemService {
     if (!hierarchyBatch?.next_batch) {
       return hirachy
     } else {
-      await new Promise((r) => setTimeout(r, 100))
+      // await new Promise((r) => setTimeout(r, 100))
 
       const getMoreRooms = await this.getBatch(
         spaceId,
@@ -179,7 +183,7 @@ export class ItemService {
       if (stateEvents?.some((state) => state.type === 'dev.medienhaus.meta')) {
         ret[space?.room_id].stateEvents = stateEvents
       }
-      await new Promise((r) => setTimeout(r, 1))
+      // await new Promise((r) => setTimeout(r, 1))
       if (!options?.noLog) {
         Logger.log('get stateEvents:\t' + i + '/' + hierarchy?.rooms.length)
       }
@@ -349,7 +353,7 @@ export class ItemService {
           Logger.log("can't get room members:/t" + spaceId)
         })
       rawSpaces[spaceId].joinedMembers = joinedMembers
-      await new Promise((r) => setTimeout(r, 1))
+      // await new Promise((r) => setTimeout(r, 1))
     } else {
       joinedMembers = rawSpaces[spaceId].joinedMembers
     }
@@ -994,7 +998,7 @@ export class ItemService {
               case 'ul':
               case 'ol':
                 return lastMessage.content.formatted_body
-              // For all other types we render the HTML using the corresponding Handlebars template in /views/contentBlocks
+                // For all other types we render the HTML using the corresponding Handlebars template in /views/contentBlocks
               default:
                 if (!this.configService.get('attributable.spaceTypes.content').some((f) => f === template)) {
                   return ''
