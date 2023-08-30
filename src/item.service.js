@@ -151,7 +151,7 @@ export class ItemService {
     if (!hierarchyBatch?.next_batch) {
       return hirachy
     } else {
-      // await new Promise((r) => setTimeout(r, 100))
+      await new Promise((r) => setTimeout(r, 100))
 
       const getMoreRooms = await this.getBatch(
         spaceId,
