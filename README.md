@@ -125,6 +125,7 @@ Which interfaces routes shall be publicly exposed with this application?
 Type definitions which are stored in the `dev.medienhaus.meta` [matrix] 'stateEvent'. It is explained in detail in the medienhaus/specifications.
 
 - `spaceTypes` — Object
--- `context` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
--- `item` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
--- `content` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
+
+- `context` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
+- `item` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
+- `content` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
