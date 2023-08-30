@@ -128,9 +128,3 @@ Type definitions which are stored in the `dev.medienhaus.meta` [matrix] 'stateEv
 -- `context` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
 -- `item` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
 -- `content` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
-
-## Interfaces
-
-### REST
-
-### GRAPHQL
