@@ -1,8 +1,8 @@
-![Medienhaus Logo](./public/favicon.svg)
+<img src="./public/favicon.svg" width="70" />
 
-# Medienhaus
+### medienhaus/
 
-Medienhaus is a customizable, modular, free, and open-source environment for decentralized, distributed communication and collaboration.
+Customizable modular free and open-source environment for decentralized, distributed communication and collaboration.
 
 - [Website](https://medienhaus.dev/)
 - [Mastodon](https://chaos.social/@medienhaus)
