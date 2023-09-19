@@ -3,8 +3,8 @@ export default () => ({
   matrix: {
     homeserver_base_url: 'https://matrix.org',
     user_id: '@username:matrix.org',
-    access_token: 'xxxxxxxx',
-    root_context_space_id: '!xxxxxxxxx:matrix.org'
+    access_token: 'syt_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    root_context_space_id: '!xxxxxxxxxxxxxxxxxx:matrix.org'
   },
   fetch: {
     depth: 500,
@@ -23,8 +23,8 @@ export default () => ({
     post: true
   },
   application: {
-    name: 'some name',
-    api_name: 'someName-api',
+    name: 'medienhaus',
+    api_name: 'medienhaus-api',
     standards: [
       {
         name: 'dev.medienhaus.meta',
@@ -42,14 +42,26 @@ export default () => ({
   },
   attributable: {
     spaceTypes: {
-      item: ['item', 'studentproject', 'project', 'event'],
+      item: [
+        'item',
+        'studentproject',
+        'project',
+        'event'
+      ],
       context: [
         'context',
         'class',
         'faculty',
         'centre'
       ],
-      content: ['lang', 'headline', 'text', 'ul', 'ol', 'quote']
+      content: [
+        'lang',
+        'headline',
+        'text',
+        'ul',
+        'ol',
+        'quote'
+      ]
     }
   }
 })
