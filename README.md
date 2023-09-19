@@ -8,13 +8,13 @@ Customizable modular free and open-source environment for decentralized, distrib
 
 <br>
 
-# medienhaus/ caching api 
+# medienhaus/ caching api
 
 The medienhaus/api is a caching API which fetches tree-structured data from [matrix] and temporarily stores it. This makes the data accessible to non-Matrix read-only applications through a REST and/or GraphQL interface. Temporarily storing the fetched data allows for revealing relationships between datasets, which is essential for many use cases involving graph-oriented data interactions.
 
 The core use case of this caching API is to enable the creation of fast-loading, client-side-rendered front-facing websites without the need for users to interact directly with [matrix]. It is based on the NestJS framework (not written in TypeScript at the moment).
 
-**Disclaimer:** 
+**Disclaimer:**
 While this application follows the medienhaus/ specifications, the source code of this repository is currently messy and needs a rewrite in the near future. However, due to its importance in the medienhaus/cms stack, it cannot be shut down immediately. Some functions in this repository may have been developed for specific projects, and there may still be proprietary pieces of code related to those projects.
 
 ## Installation
@@ -49,12 +49,12 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
-Save the file and enable the service with `systemctl enable medienhaus-api.service`. You can check if it's working with `systemctl status medienhaus-api.service`. 
+Save the file and enable the service with `systemctl enable medienhaus-api.service`. You can check if it's working with `systemctl status medienhaus-api.service`.
 
 8. After the initial fetch, the application should be accessible on the specified port on localhost. You can test this with `curl http://localhost:3009/api/v2`. If you receive a JSON response, everything is working as intended.
 
 9. Optional: If you want to expose the caching API via a readable domain name instead of a port, you can achieve this with a reverse proxy like Nginx. Ensure that Nginx is installed and configured on your system, and install a certificate with Let's Encrypt Certbot (many tutorials are available for this). Here's an example Nginx server block configuration to pass the API port to a domain in Nginx. Create a file with your favourite code editor or 'nano' at `nano /etc/nginx/sites-available/api.yourdomainname.tld` with the following content:
-    
+
 ```
 server {
   listen 80;
@@ -99,7 +99,7 @@ You can obtain an access token from a [matrix] server via the `https://content.u
 }
 ```
 
-### Fetch 
+### Fetch
 
 The fetch configuration defines how the caching API retrieves data from the [matrix] server:
 
