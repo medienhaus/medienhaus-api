@@ -29,21 +29,25 @@ Follow these steps to install:
    ```
    git clone https://github.com/medienhaus/medienhaus-api
    ```
+
 2. Install dependencies:
    <br>
    ```
    npm install
    ```
+
 3. Copy the config file from the example:
    <br>
    ```
    cp config.example.js config.js
    ```
+
 4. Open and modify the config file (further config details below):
    <br>
    ```
    nano config.js
    ```
+
 5. Optional: if you don’t want to run the API on port `3009`, define a custom port via an `.env` file:
    <br>
    ```
@@ -51,93 +55,90 @@ Follow these steps to install:
    ```
    ```
    cat > .env << EOF
-API_PORT=${medienhaus_API_PORT}
-EOF
+   API_PORT=${medienhaus_API_PORT}
+   EOF
    ```
+
 6. Start the application via:
    <br>
    ```
-   node index.js
-   ```
-   or
-   ```
    npm run start
    ```
+
 7. Optional: If the application needs to run permanently, you could create a systemd service.
    <br>
    ```
    cat > /etc/systemd/system/medienhaus-api.service << EOF
-[Unit]
-Description=medienhaus/api
-After=syslog.target network.target
+   [Unit]
+   Description=medienhaus/api
+   After=syslog.target network.target
 
-[Service]
-Type=simple
-User=root
-Group=root
-WorkingDirectory=/path/to/the/medienhaus-api
-# Environment=NODE_ENV=production
-ExecStart=/usr/bin/node /path/to/the/medienhaus-api/index.js
-Restart=always
+   [Service]
+   Type=simple
+   User=root
+   Group=root
+   WorkingDirectory=/path/to/the/medienhaus-api
+   # Environment=NODE_ENV=production
+   ExecStart=/usr/bin/node /path/to/the/medienhaus-api/index.js
+   Restart=always
 
-[Install]
-WantedBy=multi-user.target
-EOF
+   [Install]
+   WantedBy=multi-user.target
+   EOF
    ```
    ```
    systemctl enable medienhaus-api.service
    ```
    You can check if it’s working with `systemctl status medienhaus-api.service`.
-8. After the initial fetch, the application should be accessible on the specified port on localhost.
+
+8. After the initial fetch, the application should be accessible on the specified port on localhost. If you receive a JSON response, everything is working as intended.
    <br>
    ```
    curl http://localhost:${medienhaus_API_PORT:-3009}/api/v2
    ```
-   If you receive a JSON response, everything is working as intended.
+
 9. Optional: If you want to expose the caching API via a readable domain name instead of a port, you can achieve this with a reverse proxy like Nginx. Ensure that Nginx is installed and configured on your system, and install a certificate with Let’s Encrypt Certbot (many tutorials are available for this). Here’s an example Nginx reverse proxy configuration:
    <br>
    ```
    medienhaus_API_FQDN=<YOUR_FQDN_HERE>
    ```
    ```
-  cat > /etc/nginx/sites-available/medienhaus-api << EOF
-server {
-  listen 80;
-  server_name ${medienhaus_API_FQDN};
-  return 301 https://$server_name$request_uri;
-}
+   cat > /etc/nginx/sites-available/medienhaus-api << EOF
+   server {
+     listen 80;
+     server_name ${medienhaus_API_FQDN};
+     return 301 https://$server_name$request_uri;
+   }
 
-server {
-  listen 443 ssl;
-  server_name ${medienhaus_API_FQDN};
+   server {
+     listen 443 ssl;
+     server_name ${medienhaus_API_FQDN};
 
-  ssl_certificate /etc/letsencrypt/live/${medienhaus_API_FQDN}/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/${medienhaus_API_FQDN}/privkey.pem;
+     ssl_certificate /etc/letsencrypt/live/${medienhaus_API_FQDN}/fullchain.pem;
+     ssl_certificate_key /etc/letsencrypt/live/${medienhaus_API_FQDN}/privkey.pem;
 
-  location / {
-    proxy_pass http://127.0.0.1:${medienhaus_API_PORT:-3009};
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $remote_addr;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
-}
-EOF
+     location / {
+       proxy_pass http://127.0.0.1:${medienhaus_API_PORT:-3009};
+       proxy_set_header Host $host;
+       proxy_set_header X-Forwarded-For $remote_addr;
+       proxy_set_header X-Forwarded-Proto $scheme;
+     }
+   }
+   EOF
    ```
    ```
    ln -s /etc/nginx/sites-available/medienhaus-api /etc/nginx/sites-enable/medienhaus-api
    ```
    Check if everything works fine with:
-   <br>
    ```
    nginx -t
    ```
    If no problems occur, restart Nginx with:
-   <br>
    ```
    systemctl restart nginx
    ```
 
-**Note:** For some of the commands, you might need root privileges to execute, so you might want to make use of `sudo`.
+**Note:** For some of the commands, you might need root privileges to execute: `sudo …`.
 
 ## Configuration
 
