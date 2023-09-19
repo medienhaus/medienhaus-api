@@ -109,8 +109,8 @@ Follow these steps to install:
    cat > /etc/nginx/sites-available/medienhaus-api << EOF
    server {
      listen 80;
-     server_name ${medienhaus_API_FQDN};
-     return 301 https://$server_name$request_uri;
+     server_name \${medienhaus_API_FQDN};
+     return 301 https://\$server_name\$request_uri;
    }
 
    server {
@@ -122,9 +122,9 @@ Follow these steps to install:
 
      location / {
        proxy_pass http://127.0.0.1:${medienhaus_API_PORT:-3009};
-       proxy_set_header Host $host;
-       proxy_set_header X-Forwarded-For $remote_addr;
-       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header Host \$host;
+       proxy_set_header X-Forwarded-For \$remote_addr;
+       proxy_set_header X-Forwarded-Proto \$scheme;
      }
    }
    EOF
