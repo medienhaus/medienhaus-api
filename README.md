@@ -37,7 +37,7 @@ Follow these steps to install:
 3. Copy the config file from the example:
    <br>
    ```
-   cp config.js.example config.js
+   cp config.example.js config.js
    ```
 4. Open and modify the config file (further config details below):
    <br>
