@@ -13,7 +13,8 @@ The medienhaus/api is a caching API which fetches tree-structured data from [mat
 
 The core use case of this caching API is to enable the creation of fast-loading, client-side-rendered front-facing websites without the need for users to interact directly with [matrix]. It is based on the NestJS framework (not written in TypeScript at the moment).
 
-**Disclaimer:** While this application follows the medienhaus/ specifications, the source code of this repository is currently messy and needs a rewrite in the near future. However, due to its importance in the medienhaus/cms stack, it cannot be shut down immediately. Some functions in this repository may have been developed for specific projects, and there may still be proprietary pieces of code related to those projects.
+**Disclaimer:** 
+While this application follows the medienhaus/ specifications, the source code of this repository is currently messy and needs a rewrite in the near future. However, due to its importance in the medienhaus/cms stack, it cannot be shut down immediately. Some functions in this repository may have been developed for specific projects, and there may still be proprietary pieces of code related to those projects.
 
 ## Installation
 
