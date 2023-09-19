@@ -68,6 +68,9 @@ Follow these steps to install:
 7. Optional: If the application needs to run permanently, you could create a systemd service.
    <br>
    ```
+   medienhaus_API_DIR=$(pwd)
+   ```
+   ```
    cat > /etc/systemd/system/medienhaus-api.service << EOF
    [Unit]
    Description=medienhaus/api
@@ -77,9 +80,9 @@ Follow these steps to install:
    Type=simple
    User=root
    Group=root
-   WorkingDirectory=/path/to/the/medienhaus-api
+   WorkingDirectory=${medienhaus_API_DIR}
    # Environment=NODE_ENV=production
-   ExecStart=/usr/bin/node /path/to/the/medienhaus-api/index.js
+   ExecStart=/usr/bin/node ${medienhaus_API_DIR}/index.js
    Restart=always
 
    [Install]
