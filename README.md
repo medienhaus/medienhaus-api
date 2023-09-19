@@ -6,6 +6,8 @@ Customizable modular free and open-source environment for decentralized, distrib
 
 [Website](https://medienhaus.dev/) — [Mastodon](https://chaos.social/@medienhaus)
 
+<br>
+
 # medienhaus/ caching api 
 
 The medienhaus/api is a caching API which fetches tree-structured data from [matrix] and temporarily stores it. This makes the data accessible to non-Matrix read-only applications through a REST and/or GraphQL interface. Temporarily storing the fetched data allows for revealing relationships between datasets, which is essential for many use cases involving graph-oriented data interactions.
