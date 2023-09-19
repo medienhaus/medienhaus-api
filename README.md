@@ -50,11 +50,11 @@ WantedBy=multi-user.target
 ````
 
 Save the file and enable the service with `systemctl enable medienhaus-api.service`. You can check if it's working with `systemctl status medienhaus-api.service`. 
+
 8. After the initial fetch, the application should be accessible on the specified port on localhost. You can test this with `curl http://localhost:3009/api/v2`. If you receive a JSON response, everything is working as intended.
 9.Optional: If you want to expose the caching API via a readable domain name instead of a port, you can achieve this with a reverse proxy like Nginx. Ensure that Nginx is installed and configured on your system, and install a certificate with Let's Encrypt Certbot (many tutorials are available for this). Here's an example Nginx server block configuration to pass the API port to a domain in Nginx. Create a file with your favourite code editor or 'nano' at `nano /etc/nginx/sites-available/api.yourdomainname.tld` with the following content:
     
-    ```
-
+```
 server {
   listen 80;
   server_name api.yourdomainname.tld;
