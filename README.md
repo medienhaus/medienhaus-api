@@ -31,7 +31,7 @@ Follow these steps to install:
 6. Start the application via `node index.js` or `npm run start`
 7. Optional: If the application needs to run permanently, create a systemd service. Use your favourite code editor or 'nano' to create a service file at `nano /etc/systemd/system/medienhaus-api.service` with the following content:
 
-````
+```
 [Unit]
 Description=medienhaus/api
 After=syslog.target network.target
@@ -47,7 +47,7 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
-````
+```
 
 Save the file and enable the service with `systemctl enable medienhaus-api.service`. You can check if it's working with `systemctl status medienhaus-api.service`. 
 
@@ -78,14 +78,14 @@ server {
 }
 ```
 
-Save the file and create a symlink to the 'sites-enabled' folder with `ln -s /etc/nginx/sites-enable/api.yourdomainname.tld /etc/nginx/sites-available/api.yourdomainname.tld`. Check if everything works fine with `nginx -t``. If no problems occur, restart Nginx with `systemctl restart nginx``, and your application should be accessible at the defined domain.
+Save the file and create a symlink to the 'sites-enabled' folder with `ln -s /etc/nginx/sites-enable/api.yourdomainname.tld /etc/nginx/sites-available/api.yourdomainname.tld`. Check if everything works fine with `nginx -t`. If no problems occur, restart Nginx with `systemctl restart nginx`, and your application should be accessible at the defined domain.
 
 Note: For some of the commands, you might need root privileges to execute, so add 'sudo' in front of those commands and give it a go.
 ## Configuration
-Here you can find useful information to help you edit the `config.js`` file.
+Here you can find useful information to help you edit the `config.js` file.
 ### matrix
 
-Insert your login credentials for the Matrix server you want to fetch data from. It's essential to fill in all four keys provided in the example. The API always starts with a 'rootId' defined in the root_context_space_id key. From there, it checks the space children of this ID and, based on recursive algorithms, fetches data from [matrix].
+Insert your login credentials for the [matrix] server you want to fetch data from. It's essential to fill in all four keys provided in the example. The API always starts with a 'rootId' defined in the `root_context_space_id` key. From there, it checks the space children of this ID and, based on recursive algorithms, fetches data from [matrix].
 
 It's recommended to create a dedicated bot account for fetching. This eliminates the risk of a user signing out all devices and deactivating the access token in the config, which would result in a non-functional caching API.
 
@@ -104,7 +104,7 @@ You can obtain an access token from a [matrix] server via the `https://content.u
 The fetch configuration defines how the caching API retrieves data from the [matrix] server:
 
 - `depth` (integer): Specifies the maximal depth for recursive data retrieval.
-- `max` (integer): Sets the maximum number of [Matrix] spaces to cache.
+- `max` (integer): Sets the maximum number of [matrix] spaces to cache.
 - `interval` (seconds): Determines how often the caching API should fetch all data.
 - `autoFetch` (boolean): Enables or disables interval-based data fetching.
 - `dump` (boolean): Allows you to enable or disable the use of a previously cached dataset instead of fetching it anew.
@@ -120,7 +120,7 @@ In this section, you can specify which interface routes should be publicly expos
 - `graphql` (boolean): Enable or disable the GraphQL interface.
 - `graphql_playground` (boolean): Enable or disable the GraphQL playground.
 - `post` (boolean): Enable or disable POST routes, which allow partial updates to cached data.
-- `dev` (boolean): Enable or disable development routes, providing access to raw fetched data and all 'state_events' for the fetched [Matrix] IDs.
+- `dev` (boolean): Enable or disable development routes, providing access to raw fetched data and all 'state_events' for the fetched [matrix] IDs.
 
 ### application
 
