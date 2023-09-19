@@ -4,8 +4,7 @@
 
 Customizable modular free and open-source environment for decentralized, distributed communication and collaboration.
 
-- [Website](https://medienhaus.dev/)
-- [Mastodon](https://chaos.social/@medienhaus)
+[Website](https://medienhaus.dev/) — [Mastodon](https://chaos.social/@medienhaus)
 
 # medienhaus/ caching api 
 
@@ -26,7 +25,7 @@ Follow these steps to install:
 2. Install dependencies: `npm install`
 3. Copy the config file from the example: `cp config.js.example config.js`
 4. Insert your data into the config file (explained below)
-5. Optiona;: if you don't want to run the application on port '3009', define a custom port via an '.env' file. Create one with your favourite editor or via `nano .env` and specify your own port, e.g., `API_PORT=3011`. Save the file (in the case of nano, press 'ctrl + x' and 'y').
+5. Optional: if you don't want to run the application on port '3009', define a custom port via an '.env' file. Create one with your favourite editor or via `nano .env` and specify your own port, e.g., `API_PORT=3011`. Save the file (in the case of nano, press 'ctrl + x' and 'y').
 6. Start the application via `node index.js` or `npm run start`
 7. Optional: If the application needs to run permanently, create a systemd service. Use your favourite code editor or 'nano' to create a service file at `nano /etc/systemd/system/medienhaus-api.service` with the following content:
 
@@ -48,10 +47,9 @@ Restart=always
 WantedBy=multi-user.target
 ````
 
-Save the file and enable the service with `systemctl enable medienhaus-api.service`. You can check if it's working with `systemctl status medienhaus-api.service`
-
-    After the initial fetch, the application should be accessible on the specified port on localhost. You can test this with `curl http://localhost:3009/api/v2`. If you receive a JSON response, everything is working as intended.
-    Optional: If you want to expose the caching API via a readable domain name instead of a port, you can achieve this with a reverse proxy like Nginx. Ensure that Nginx is installed and configured on your system, and install a certificate with Let's Encrypt Certbot (many tutorials are available for this). Here's an example Nginx server block configuration to pass the API port to a domain in Nginx. Create a file with your favourite code editor or 'nano' at `nano /etc/nginx/sites-available/api.yourdomainname.tld` with the following content:
+Save the file and enable the service with `systemctl enable medienhaus-api.service`. You can check if it's working with `systemctl status medienhaus-api.service`. 
+8. After the initial fetch, the application should be accessible on the specified port on localhost. You can test this with `curl http://localhost:3009/api/v2`. If you receive a JSON response, everything is working as intended.
+9.Optional: If you want to expose the caching API via a readable domain name instead of a port, you can achieve this with a reverse proxy like Nginx. Ensure that Nginx is installed and configured on your system, and install a certificate with Let's Encrypt Certbot (many tutorials are available for this). Here's an example Nginx server block configuration to pass the API port to a domain in Nginx. Create a file with your favourite code editor or 'nano' at `nano /etc/nginx/sites-available/api.yourdomainname.tld` with the following content:
     
     ```
 
@@ -98,9 +96,9 @@ You can obtain an access token from a [matrix] server via the `https://content.u
 }
 ```
 
-### Fetch Configuration
+### Fetch 
 
-The fetch configuration defines how the caching API retrieves data from the [Matrix] server:
+The fetch configuration defines how the caching API retrieves data from the [matrix] server:
 
 - `depth` (integer): Specifies the maximal depth for recursive data retrieval.
 - `max` (integer): Sets the maximum number of [Matrix] spaces to cache.
@@ -110,7 +108,7 @@ The fetch configuration defines how the caching API retrieves data from the [Mat
 - `initiallyLoad` (boolean): Enables or disables the initial data fetching. This is primarily needed when using dump caches.
 - `noLog` (boolean): Controls whether detailed logging output is generated during data fetching.
 
-### interfaces
+### Interfaces
 
 In this section, you can specify which interface routes should be publicly exposed by this application:
 
@@ -125,7 +123,7 @@ In this section, you can specify which interface routes should be publicly expos
 
 - `name` (String): This is the human-readable name of your application instance.
 - `api_name` (String): This is the machine-readable name of your application instance. Avoid spaces in this name.
-- `standards` (Array of Objects): This array should be kept as it is.
+- `standards` (Array of Objects): This array should be kept as it is. :)
 
 ### ‌attributable
 
