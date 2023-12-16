@@ -4,3 +4,4 @@ configDev.js
 config.*.js
 .env
 .DS_Store
+/dump/*

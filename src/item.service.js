@@ -90,6 +90,8 @@ export class ItemService {
     this.contents = []
     this.batchCounter = 0
 
+    this.maxLocalDepth = undefined
+
     const filtedObjects = _.filter(
       this.allSpaces,
       (space) => space.type === 'item'
@@ -125,9 +127,38 @@ export class ItemService {
       }
     })
 
+    this._generateLocalDepth()
+
     Logger.log('Fetched ' + Object.keys(allSpaces).length + ' spaces with ' + Object.keys(this.items).length + ' items, after: ' + Math.round((Date.now() - this.fistFetch) / 10 / 60) / 100 + ' minutes,  which took: ' + (Math.round((((Date.now() - fetchStart) / 1000) * 100) / 100)) + ' seconds')
     this.lastFetch = Date.now()
     if (!this.initiallyFetched) this.initiallyFetched = true
+
+    if (this.configService.get('fetch.dump')) {
+      console.log('bgin')
+      fs.writeFileSync('./dump/dump.json', JSON.stringify(
+        {
+          allSpaces: this.allSpaces,
+          items: this.items,
+          structure: this.structure,
+          _allRawSpaces: this._allRawSpaces,
+          servers: this.servers,
+          users: this.users,
+          contents: this.contents
+        }
+      ))
+    }
+  }
+
+  _generateLocalDepth () {
+    let maxLocalDepth = 0
+    _.forEach(this.allSpaces, (content, key) => {
+      const depth = this.getPathList(key)?.length
+      this.allSpaces[key].localDepth = depth
+      if (depth > maxLocalDepth) {
+        maxLocalDepth = depth
+      }
+    })
+    this.maxLocalDepth = maxLocalDepth
   }
 
   async getBatch (spaceId, options, batch, hirachy) {
@@ -1050,7 +1081,8 @@ export class ItemService {
       rootId: Object.keys(this.getStructure())[0],
       ...this.configService.get('application'),
       ...this.configService.get('fetch'),
-      ...this.configService.get('attributable')
+      ...this.configService.get('attributable'),
+      maxLocalDepth: this.maxLocalDepth
     }
   }
 
@@ -1162,15 +1194,34 @@ export class ItemService {
         DE: space?.topicDe
       },
       parents: parentIds,
-      localDepth: this.getPathList(id)?.length,
+      localDepth: space.localDepth ? space.localDepth : this.getPathList(id)?.length,
       ...this._abstractTypes(this._sortChildren(space.children)) // seems to return the wrong spaces, fixing later
     }
   }
 
   getPath (id) {
+    // we check if it is the root structure id as this is a special case
+    if (id === Object.keys(this.structure)[0]) {
+      return {
+        [id]: {
+          name: Object.values(this.structure)[0].name,
+          id: Object.values(this.structure)[0].id,
+          room_id: Object.values(this.structure)[0].room_id,
+          type: Object.values(this.structure)[0].type,
+          template: Object.values(this.structure)[0].template
+        }
+      }
+    }
+
     const path = this._findPath(Object.values(this.structure)[0], id, {})
 
+    console.log(Object.keys(this.structure)[0])
+    // if(id === )
+
     if (path) {
+      // if (!path.children) {
+      //   return { [id]: { ...path, children: {} } }
+      // }
       const parent = { ...Object.values(this.structure)[0] }
       delete parent.children
 

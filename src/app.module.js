@@ -12,6 +12,7 @@ import { GraphQLModule } from '@nestjs/graphql'
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
 import { ItemResolver } from './item.resolver'
 import { join } from 'path'
+import * as fs from 'fs'
 
 @Module({
   imports: [
@@ -39,6 +40,21 @@ import { join } from 'path'
       inject: [ConfigService, HttpService, SchedulerRegistry],
       useFactory: async (configService, httpService, schedulerRegistry) => {
         const x = new ItemService(configService, httpService)
+        if (fs.existsSync('./dump/dump.json') && configService.get('fetch.dump')) {
+          console.log('loading dump')
+          const dump = JSON.parse(fs.readFileSync('./dump/dump.json'))
+          if (dump) {
+            x.allSpaces = dump.allSpaces
+            x.items = dump.items
+            x.structure = dump.structure
+            x._allRawSpaces = dump._allRawSpaces
+            x.servers = dump.servers
+            x.users = dump.users
+            x.contents = dump.contents
+          }
+        }
+        if (!configService.get('fetch.autoFetch')) return x
+
         if (x.configService.get('fetch.initalyLoad')) await x.fetch()
 
         if (x.configService.get('fetch.interval')) {
