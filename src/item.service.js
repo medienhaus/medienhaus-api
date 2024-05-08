@@ -556,7 +556,6 @@ export class ItemService {
         : avatar?.content?.url
 
     if (metaEvent?.content?.deleted) return
-    console.log(createdTimestamp)
     return {
       space: {
         name: spaceName,

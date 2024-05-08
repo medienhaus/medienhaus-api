@@ -376,7 +376,6 @@ export class LegacyInterpreter {
 
     if (!languageSpaces[language]) return
 
-    console.log(languageSpaces)
     // Get the actual content block rooms for the given language
     const contentRooms = await matrixClient.getRoomHierarchy(
       languageSpaces[language],
