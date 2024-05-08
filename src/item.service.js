@@ -83,9 +83,9 @@ export class ItemService {
     this.legacyInterpreter.clear()
     const structure = {}
     this.graphQlCache = {}
-    structure[generatedStrucute.room_id] = generatedStrucute
     this._allRawSpaces = allSpaces
     this.allSpaces = await this.generateAllSpaces(allSpaces, { noLog: this.configService.get('fetch.noLog') })
+    structure[generatedStrucute.room_id] = generatedStrucute
     this.structure = structure
     this.contents = []
     this.batchCounter = 0
@@ -250,7 +250,27 @@ export class ItemService {
       const metaEvent = _.find(space.stateEvents, {
         type: 'dev.medienhaus.meta'
       })
-      // if (filter.some(f => f === metaEvent?.content?.type)) { return { name: space.name, room_id: space.room_id, type: metaEvent?.content?.type, children: children } }
+
+      // legacy patched
+      if (!['item', 'context', 'content'].some(f => f === metaEvent?.content?.type)) {
+        let legacyType
+        if (this.configService.get('attributable.spaceTypes.context').some((f) => f === metaEvent?.content?.type)) {
+          legacyType = 'context'
+        } else if (this.configService.get('attributable.spaceTypes.item').some((f) => f === metaEvent?.content?.type)) {
+          legacyType = 'item'
+        } else if (this.configService.get('attributable.spaceTypes.content').some((f) => f === metaEvent?.content?.type)) {
+          legacyType = 'content'
+        }
+        const legacyTemplate = metaEvent?.content?.type
+        return {
+          name: space.name,
+          room_id: space.room_id,
+          id: space.room_id,
+          type: legacyType,
+          template: legacyTemplate,
+          children
+        }
+      }
       return {
         name: space.name,
         room_id: space.room_id,
@@ -1334,7 +1354,6 @@ export class ItemService {
         }
       })
     }
-
     return re
   }
 

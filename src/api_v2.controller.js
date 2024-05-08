@@ -151,4 +151,10 @@ export class ApiV2Controller {
   apiGetAllUsers () {
     return this.itemService.users
   }
+
+  @Get('/dev/structure')
+  @Bind(Param())
+  apiGetStructure () {
+    return this.itemService.structure
+  }
 }
