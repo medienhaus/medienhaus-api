@@ -140,9 +140,15 @@ export class ApiV2Controller {
     return this.itemService.allSpaces
   }
 
-    @Get('/dev/items')
+  @Get('/dev/items')
   @Bind(Param())
   apiGetAllItems () {
     return this.itemService.items
+  }
+
+  @Get('/dev/users')
+  @Bind(Param())
+  apiGetAllUsers () {
+    return this.itemService.users
   }
 }

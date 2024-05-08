@@ -1636,14 +1636,21 @@ export class ItemService {
   }
 
   getUser (userId) {
-    const user = _.find(this.users, ({ id }) => id === userId)
-    if (user) {
-      user.server = this.getServer(user.id.split(':')[1])
-      const userSpaces = this._findSpacesByUserId(userId)
-      user.item = _.filter(userSpaces, { type: 'item' })
-      user.context = _.filter(userSpaces, { type: 'context' })
-      user.content = _.filter(userSpaces, { type: 'content' })
+    let cached = this.graphQlCache[userId]
+    if (!cached) {
+      const user = _.find(this.users, ({ id }) => id === userId)
+      if (user) {
+        user.server = this.getServer(user.id.split(':')[1])
+        const userSpaces = this._findSpacesByUserId(userId)
+        user.item = _.filter(userSpaces, { type: 'item' })
+        user.context = _.filter(userSpaces, { type: 'context' })
+        user.content = _.filter(userSpaces, { type: 'content' })
+      }
+      cached = user
+      this.graphQlCache[userId] = cached
     }
+    return cached
+
     return user
   }
 
