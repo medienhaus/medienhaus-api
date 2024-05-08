@@ -52,6 +52,7 @@ import * as fs from 'fs'
             x.users = dump.users
             x.contents = dump.contents
           }
+          x._generateLocalDepth()
         }
         if (!configService.get('fetch.autoFetch')) return x
 
@@ -64,7 +65,7 @@ import * as fs from 'fs'
           const fetchInterval = setInterval(fetchCallback, x.configService.get('fetch.interval') * 1000) // seconds to ms
           schedulerRegistry.addInterval('fetchInterval', fetchInterval)
         }
-
+        x._generateLocalDepth()
         return x
       }
     },

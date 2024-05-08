@@ -127,14 +127,11 @@ export class ItemService {
       }
     })
 
-    this._generateLocalDepth()
-
     Logger.log('Fetched ' + Object.keys(allSpaces).length + ' spaces with ' + Object.keys(this.items).length + ' items, after: ' + Math.round((Date.now() - this.fistFetch) / 10 / 60) / 100 + ' minutes,  which took: ' + (Math.round((((Date.now() - fetchStart) / 1000) * 100) / 100)) + ' seconds')
     this.lastFetch = Date.now()
     if (!this.initiallyFetched) this.initiallyFetched = true
 
     if (this.configService.get('fetch.dump')) {
-      console.log('bgin')
       fs.writeFileSync('./dump/dump.json', JSON.stringify(
         {
           allSpaces: this.allSpaces,
@@ -1215,7 +1212,6 @@ export class ItemService {
 
     const path = this._findPath(Object.values(this.structure)[0], id, {})
 
-    console.log(Object.keys(this.structure)[0])
     // if(id === )
 
     if (path) {
@@ -1523,7 +1519,6 @@ export class ItemService {
   async getRenderedJson (id) {
     const abstract = this.getAbstract(id)
     const languages = {}
-
     for await (const [i, language] of this.items[id]?.languages?.entries()) {
       if (!language) continue
       languages[language?.toUpperCase()] = await this.getContent(id, language)
