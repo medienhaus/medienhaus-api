@@ -319,6 +319,9 @@ export class ItemService {
       return this.legacyInterpreter.convertLegacySpace(stateEvents, spaceId, rawSpaces)
     }
 
+    const createEvent = _.find(stateEvents, { type: 'm.room.create' })
+    const createdTimestamp = createEvent?.origin_server_ts
+
     const parent = {}
     let parents = []
     if (idsToApplyFullStaeUpdate) {
@@ -553,11 +556,13 @@ export class ItemService {
         : avatar?.content?.url
 
     if (metaEvent?.content?.deleted) return
+    console.log(createdTimestamp)
     return {
       space: {
         name: spaceName,
         template: metaEvent?.content?.template,
         topicEn,
+        created: createdTimestamp,
         type: metaEvent?.content?.type,
         topicDe,
         languages: languageSpaces?.map((lang) => lang?.name),
@@ -1180,7 +1185,8 @@ export class ItemService {
         applications: [],
         server: [space.id.split(':')[1]],
         authors: space.authors,
-        members: space.members
+        members: space.members,
+        created: space.created
       },
       description: {
         default: _.find(

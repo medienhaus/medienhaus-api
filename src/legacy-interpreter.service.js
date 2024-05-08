@@ -39,6 +39,9 @@ export class LegacyInterpreter {
 
     let type
 
+    const createEvent = _.find(stateEvents, { type: 'm.room.create' })
+    const createdTimestamp = createEvent?.origin_server_ts
+
     const legacyTemplate = metaEvent?.content?.type
     if (this.configService.get('attributable.spaceTypes.context').some((f) => f === legacyTemplate)) {
       type = 'context'
@@ -247,6 +250,7 @@ export class LegacyInterpreter {
         name: spaceName,
         template,
         topicEn,
+        created: createdTimestamp,
         type,
         topicDe,
         languages: languageSpaces?.map((lang) => lang?.name),
