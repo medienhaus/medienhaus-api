@@ -1432,6 +1432,7 @@ export class ItemService {
     //     wrappers[space.wrapper].push(space)
     //   }
     // })
+    if (!children) return types
     children.forEach((child) => {
       const space = this._findSpaceBy(child, 'id')
       if (space?.type) {
@@ -1744,9 +1745,9 @@ export class ItemService {
   }
 
   // converting to type orientated schema from graphql. This is such a mess, rewrite highly needed!
-  convertSpaces (spaces) {
+  convertSpaces (spaces, newSpace = false) {
     return _.map(spaces, (space) => {
-      return this.convertSpace(space?.id, space)
+      if (newSpace) { return this.convertSpace(space?.id) } else { return this.convertSpace(space?.id, space) }
     })
   }
 
@@ -1756,7 +1757,7 @@ export class ItemService {
     if (!space) {
       return
     }
-    const types = this._abstractTypes(this._sortChildren(space.children))
+    const types = this._abstractTypes(this._sortChildren(space?.children))
 
     space.item = types.item
     space.context = types.context
@@ -1764,6 +1765,10 @@ export class ItemService {
 
     if ((space?.template === 'studentproject' || space?.template === 'event') && space?.published === 'draft') return
     currentDepth++
+
+    // console.log(_.map(space?.descriptions, (desc) =>
+    //   this.convertDescription(desc?.id, desc)
+    // ))
 
     return {
       id: space?.id,
@@ -1775,9 +1780,11 @@ export class ItemService {
       content: _.map(space?.content, (content) =>
         this.convertSpace(content.id)
       ),
-      description: space?.descriptions?.map((desc) =>
-        this.convertDescription(desc?.id, desc)
-      ),
+      description:
+         _.map(space?.descriptions, (desc) => {
+           return this.convertDescription(desc?.id, desc)
+         }
+         ),
       thumbnail: space?.thumbnail,
       thumbnail_full_size: space?.thumbnail_full_size,
       parents: _.map(space?.parents, (parent) => {
