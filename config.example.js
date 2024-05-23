@@ -11,7 +11,7 @@ export default () => ({
     max: 10000,
     interval: 60,
     autoFetch: true,
-    dump: true,
+    dump: false,
     initalyLoad: true,
     noLog: true
   },
