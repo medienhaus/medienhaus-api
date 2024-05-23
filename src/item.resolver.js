@@ -68,7 +68,7 @@ export class ItemResolver {
   @Bind(Args())
   async items ({ pagination, start = 0, offset, template }) {
     // const spaces = this.itemService.getSpaces(template, 'item', this.itemService.convertSpaces(this.itemService.allSpaces))
-    const spaces = this.itemService.getSpaces(template, 'item')
+    const spaces = this.itemService.convertSpaces(this.itemService.getSpaces(template, 'item'), true)
     if (!pagination) return spaces
 
     if (offset) {
@@ -83,6 +83,7 @@ export class ItemResolver {
   async item ({ id }) {
     if (!id) return {}
     const space = this.itemService.convertSpace(id)
+
     if (space && space?.type === 'item') {
       return space
     } else {

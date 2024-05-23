@@ -83,12 +83,14 @@ export class ItemService {
     this.legacyInterpreter.clear()
     const structure = {}
     this.graphQlCache = {}
-    structure[generatedStrucute.room_id] = generatedStrucute
     this._allRawSpaces = allSpaces
     this.allSpaces = await this.generateAllSpaces(allSpaces, { noLog: this.configService.get('fetch.noLog') })
+    structure[generatedStrucute.room_id] = generatedStrucute
     this.structure = structure
     this.contents = []
     this.batchCounter = 0
+
+    this.maxLocalDepth = undefined
 
     const filtedObjects = _.filter(
       this.allSpaces,
@@ -128,6 +130,32 @@ export class ItemService {
     Logger.log('Fetched ' + Object.keys(allSpaces).length + ' spaces with ' + Object.keys(this.items).length + ' items, after: ' + Math.round((Date.now() - this.fistFetch) / 10 / 60) / 100 + ' minutes,  which took: ' + (Math.round((((Date.now() - fetchStart) / 1000) * 100) / 100)) + ' seconds')
     this.lastFetch = Date.now()
     if (!this.initiallyFetched) this.initiallyFetched = true
+
+    if (this.configService.get('fetch.dump')) {
+      fs.writeFileSync('./dump/dump.json', JSON.stringify(
+        {
+          allSpaces: this.allSpaces,
+          items: this.items,
+          structure: this.structure,
+          _allRawSpaces: this._allRawSpaces,
+          servers: this.servers,
+          users: this.users,
+          contents: this.contents
+        }
+      ))
+    }
+  }
+
+  _generateLocalDepth () {
+    let maxLocalDepth = 0
+    _.forEach(this.allSpaces, (content, key) => {
+      const depth = this.getPathList(key)?.length
+      this.allSpaces[key].localDepth = depth
+      if (depth > maxLocalDepth) {
+        maxLocalDepth = depth
+      }
+    })
+    this.maxLocalDepth = maxLocalDepth
   }
 
   async getBatch (spaceId, options, batch, hirachy) {
@@ -222,7 +250,27 @@ export class ItemService {
       const metaEvent = _.find(space.stateEvents, {
         type: 'dev.medienhaus.meta'
       })
-      // if (filter.some(f => f === metaEvent?.content?.type)) { return { name: space.name, room_id: space.room_id, type: metaEvent?.content?.type, children: children } }
+
+      // legacy patched
+      if (!['item', 'context', 'content'].some(f => f === metaEvent?.content?.type)) {
+        let legacyType
+        if (this.configService.get('attributable.spaceTypes.context').some((f) => f === metaEvent?.content?.type)) {
+          legacyType = 'context'
+        } else if (this.configService.get('attributable.spaceTypes.item').some((f) => f === metaEvent?.content?.type)) {
+          legacyType = 'item'
+        } else if (this.configService.get('attributable.spaceTypes.content').some((f) => f === metaEvent?.content?.type)) {
+          legacyType = 'content'
+        }
+        const legacyTemplate = metaEvent?.content?.type
+        return {
+          name: space.name,
+          room_id: space.room_id,
+          id: space.room_id,
+          type: legacyType,
+          template: legacyTemplate,
+          children
+        }
+      }
       return {
         name: space.name,
         room_id: space.room_id,
@@ -290,6 +338,9 @@ export class ItemService {
     if (!['item', 'context', 'content'].some((f) => f === metaEvent?.content?.type)) { // check if legacy from old CMS
       return this.legacyInterpreter.convertLegacySpace(stateEvents, spaceId, rawSpaces)
     }
+
+    const createEvent = _.find(stateEvents, { type: 'm.room.create' })
+    const createdTimestamp = createEvent?.origin_server_ts
 
     const parent = {}
     let parents = []
@@ -530,6 +581,7 @@ export class ItemService {
         name: spaceName,
         template: metaEvent?.content?.template,
         topicEn,
+        created: createdTimestamp,
         type: metaEvent?.content?.type,
         topicDe,
         languages: languageSpaces?.map((lang) => lang?.name),
@@ -1050,7 +1102,8 @@ export class ItemService {
       rootId: Object.keys(this.getStructure())[0],
       ...this.configService.get('application'),
       ...this.configService.get('fetch'),
-      ...this.configService.get('attributable')
+      ...this.configService.get('attributable'),
+      maxLocalDepth: this.maxLocalDepth
     }
   }
 
@@ -1151,7 +1204,8 @@ export class ItemService {
         applications: [],
         server: [space.id.split(':')[1]],
         authors: space.authors,
-        members: space.members
+        members: space.members,
+        created: space.created
       },
       description: {
         default: _.find(
@@ -1162,15 +1216,33 @@ export class ItemService {
         DE: space?.topicDe
       },
       parents: parentIds,
-      localDepth: this.getPathList(id)?.length,
+      localDepth: space.localDepth ? space.localDepth : this.getPathList(id)?.length,
       ...this._abstractTypes(this._sortChildren(space.children)) // seems to return the wrong spaces, fixing later
     }
   }
 
   getPath (id) {
+    // we check if it is the root structure id as this is a special case
+    if (id === Object.keys(this.structure)[0]) {
+      return {
+        [id]: {
+          name: Object.values(this.structure)[0].name,
+          id: Object.values(this.structure)[0].id,
+          room_id: Object.values(this.structure)[0].room_id,
+          type: Object.values(this.structure)[0].type,
+          template: Object.values(this.structure)[0].template
+        }
+      }
+    }
+
     const path = this._findPath(Object.values(this.structure)[0], id, {})
 
+    // if(id === )
+
     if (path) {
+      // if (!path.children) {
+      //   return { [id]: { ...path, children: {} } }
+      // }
       const parent = { ...Object.values(this.structure)[0] }
       delete parent.children
 
@@ -1282,7 +1354,6 @@ export class ItemService {
         }
       })
     }
-
     return re
   }
 
@@ -1361,6 +1432,7 @@ export class ItemService {
     //     wrappers[space.wrapper].push(space)
     //   }
     // })
+    if (!children) return types
     children.forEach((child) => {
       const space = this._findSpaceBy(child, 'id')
       if (space?.type) {
@@ -1472,7 +1544,6 @@ export class ItemService {
   async getRenderedJson (id) {
     const abstract = this.getAbstract(id)
     const languages = {}
-
     for await (const [i, language] of this.items[id]?.languages?.entries()) {
       if (!language) continue
       languages[language?.toUpperCase()] = await this.getContent(id, language)
@@ -1584,14 +1655,21 @@ export class ItemService {
   }
 
   getUser (userId) {
-    const user = _.find(this.users, ({ id }) => id === userId)
-    if (user) {
-      user.server = this.getServer(user.id.split(':')[1])
-      const userSpaces = this._findSpacesByUserId(userId)
-      user.item = _.filter(userSpaces, { type: 'item' })
-      user.context = _.filter(userSpaces, { type: 'context' })
-      user.content = _.filter(userSpaces, { type: 'content' })
+    let cached = this.graphQlCache[userId]
+    if (!cached) {
+      const user = _.find(this.users, ({ id }) => id === userId)
+      if (user) {
+        user.server = this.getServer(user.id.split(':')[1])
+        const userSpaces = this._findSpacesByUserId(userId)
+        user.item = _.filter(userSpaces, { type: 'item' })
+        user.context = _.filter(userSpaces, { type: 'context' })
+        user.content = _.filter(userSpaces, { type: 'content' })
+      }
+      cached = user
+      this.graphQlCache[userId] = cached
     }
+    return cached
+
     return user
   }
 
@@ -1667,9 +1745,9 @@ export class ItemService {
   }
 
   // converting to type orientated schema from graphql. This is such a mess, rewrite highly needed!
-  convertSpaces (spaces) {
+  convertSpaces (spaces, newSpace = false) {
     return _.map(spaces, (space) => {
-      return this.convertSpace(space?.id, space)
+      if (newSpace) { return this.convertSpace(space?.id) } else { return this.convertSpace(space?.id, space) }
     })
   }
 
@@ -1679,7 +1757,7 @@ export class ItemService {
     if (!space) {
       return
     }
-    const types = this._abstractTypes(this._sortChildren(space.children))
+    const types = this._abstractTypes(this._sortChildren(space?.children))
 
     space.item = types.item
     space.context = types.context
@@ -1687,6 +1765,10 @@ export class ItemService {
 
     if ((space?.template === 'studentproject' || space?.template === 'event') && space?.published === 'draft') return
     currentDepth++
+
+    // console.log(_.map(space?.descriptions, (desc) =>
+    //   this.convertDescription(desc?.id, desc)
+    // ))
 
     return {
       id: space?.id,
@@ -1698,9 +1780,11 @@ export class ItemService {
       content: _.map(space?.content, (content) =>
         this.convertSpace(content.id)
       ),
-      description: space?.descriptions?.map((desc) =>
-        this.convertDescription(desc?.id, desc)
-      ),
+      description:
+         _.map(space?.descriptions, (desc) => {
+           return this.convertDescription(desc?.id, desc)
+         }
+         ),
       thumbnail: space?.thumbnail,
       thumbnail_full_size: space?.thumbnail_full_size,
       parents: _.map(space?.parents, (parent) => {
