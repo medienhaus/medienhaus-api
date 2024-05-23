@@ -2,130 +2,201 @@
 
 ### medienhaus/
 
-Customizable modular free and open-source environment for decentralized, distributed communication and collaboration.
+Customizable, modular, free and open-source environment for decentralized, distributed communication and collaboration without third-party dependencies.
 
-[Website](https://medienhaus.dev/) — [Mastodon](https://chaos.social/@medienhaus)
+[Website](https://medienhaus.dev/) — [Fediverse](https://chaos.social/@medienhaus)
 
 <br>
 
-# medienhaus/ caching api 
-The medienhaus/api is a caching api which fetches tree structured data from [matrix] and stores them temporarily to make it accessible for non matrix read only applications via an REST and/or GRAPHQL interface. Through the temporarily storage of the fetched data it is possible to unveil relations between the fetched datasets which is necessary in many use cases to perform graph orientated data interactions. 
-The core usecase of this caching api is to enable the creation of fast loading client side rendered front facing website without the need for users of interacting directly with [matrix]. 
-It is based on the nestjs framework (for now) not written in typescript. 
+# medienhaus/ caching API
 
-**Disclaimer**
-Even as this application is following the medienhaus/specifications the source code of this repository is still a huge mess and needs a rewrite in the near future. As this application is quite important for the medienhaus/cms stack it is still not possible at the moment to shut this down. There can be still proprietary pieces of code related some applied projects, where some functions of this repository were developed for. 
+The medienhaus/ caching API fetches tree-structured data from [matrix] and temporarily stores it. This makes the data accessible to non-[matrix] read-only applications through a REST and/or GraphQL interface. Temporarily storing the fetched data allows for revealing relationships between datasets, which is essential for many use cases involving graph-oriented data interactions.
 
-## Install
-The application is tested on following operating systems: MacOS(Ventura), Ubuntu (20.04, 22.04) and Raspberry Pi OS (Bullseye) and Debian(11).
-Node.js needs to be installed on the host your are planing to install this api to. Node.js version 18, 19 and 20 are supported with this application. 
-It might run also on other systems but this is not tested. 
+The core use case of this caching API is to enable the creation of fast-loading, client-side-rendered front-facing websites without the need for developers and/or users to interact directly with the [matrix] protocol API.
 
-1. download application: `git clone https://github.com/medienhaus/medienhaus-api`
-2. install dependencies: `npm install`
-3. copy config file from example `cp config.js.example config.js`
-4. insert your data into the config (explained below)
-5. optional: if you don't want to run the application on port '3009' then it is possible to define a self specified one via an '.env' file. Just create one with our favourite editor or via `nano .env` and specify and own port, in this case 3011 `API_PORT=3011`. Save the file (in the case of nano 'ctrl + x' and 'y')
-6. Start the application via `node index.js` or `npm run start`
-7. Optional: If the application needs to run permanently create a systemd service. As before use your favourite code editor or 'nano' to create an service file in `nano /etc/systemd/system/medienhaus-api.service` with the content
-````
-[Unit]
-Description=medienhaus/api
-After=syslog.target network.target
+The medienhaus/ caching API is using the NestJS framework, favoring JavaScript over TypeScript for now.
 
-[Service]
-Type=simple
-User=root
-Group=root
-WorkingDirectory=/path/to/the/medienhaus-api
-#Environment=NODE_ENV=production
-ExecStart=/usr/bin/node /path/to/the/medienhaus-api/index.js
-Restart=always
+**Disclaimer:** While this application follows the medienhaus/ specification, the source code of this repository is currently rather messy and could need a proper rewrite. However, due to its importance in the [`medienhaus-cms`](https://github.com/medienhaus/medienhaus-cms/) stack, we wanted to make the source code publicly available. Some functions in this repository may have been developed for specific projects, and there may still be proprietary, i.e. not yet generalised, pieces of code related to those projects.
 
-[Install]
-WantedBy=multi-user.target
-````
+## Installation
 
-safe the file and enable the service via `systemctl enable medienhaus-api.service`. You can check if it worked out with checking the status via `systemctl status medienhaus-api.service`.
+The application has been tested on the following operating systems: macOS (Ventura), Ubuntu (20.04, 22.04), Raspberry Pi OS (Bullseye), and Debian (11). Node.js must be installed on the host where you plan to install this API. Node.js versions 18, 19, and 20 are supported. It might also run on other systems, but those have not been tested.
 
-8. After an initial fetch the application should run and be accessible on the specified port on localhost. You can test this through `curl http://localhost:3009/api/v2` if you get some kind of json response then everything works as intended.
-9. Optional: if you want to expose the caching api via a readable domain name instead of a port, this is possible via an 'reverse proxy'. You can achieve this with nginx. For sure nginx needs to be installed and configured on your system, just look it up how to do and how to install a certificate with the let's encrypt certbot (there are tones of tutorials out there therefore this will not be explained at this point). Here is an example nginx server block configuration to pass the api port to a domain in nginx: just create an file with your favourite code editor or 'nano' via `nano /etc/nginx/sites-available/api.yourdomainname.tld` with following content
-```
-server {
-  listen 80;
-  server_name api.yourdomainname.tld;
-  return 301 https://$server_name$request_uri;
-}
+Follow these steps to install:
 
-server {
-  listen 443 ssl;
-  server_name api.yourdomainname.tld;
+1. Download the application:
+   <br>
+   ```
+   git clone https://github.com/medienhaus/medienhaus-api
+   ```
 
-  ssl_certificate /etc/letsencrypt/live/api.yourdomainname.tld/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/api.yourdomainname.tld/privkey.pem;
+2. Install dependencies:
+   <br>
+   ```
+   npm install
+   ```
 
-  location / {
-    proxy_pass http://127.0.0.1:3009;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $remote_addr;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
-```
+3. Copy the config file from the example:
+   <br>
+   ```
+   cp config.example.js config.js
+   ```
 
-Save the file and create a symlink to the 'sites-enabled' folder via `ln -s /etc/nginx/sites-enable/api.yourdomainname.tld /etc/nginx/sites-available/api.yourdomainname.tld` check if everything works fine with the `nginx -t` command. If no problems occurred you just need to restart nginx via `systemctl restart nginx` and your application should be accessible at the defined domain.
+4. Open and modify the config file (further config details below):
+   <br>
+   ```
+   nano config.js
+   ```
 
------
-**note:** 
-For some of the commands you might need root privileges to execute so just add 'sudo ' in front of those commands and give it a go.
+5. Optional: if you don’t want to run the API on port `3009`, define a custom port via an `.env` file:
+   <br>
+   ```
+   medienhaus_API_PORT=<YOUR_PORT_HERE>
+   ```
+   ```
+   cat > .env << EOF
+   API_PORT=${medienhaus_API_PORT}
+   EOF
+   ```
 
+6. Start the application via:
+   <br>
+   ```
+   npm run start
+   ```
+
+7. Optional: If the application needs to run permanently, you could create a systemd service.
+   <br>
+   ```
+   medienhaus_API_DIR=$(pwd)
+   ```
+   ```
+   cat > /etc/systemd/system/medienhaus-api.service << EOF
+   [Unit]
+   Description=medienhaus/api
+   After=syslog.target network.target
+
+   [Service]
+   Type=simple
+   User=root
+   Group=root
+   WorkingDirectory=${medienhaus_API_DIR}
+   # Environment=NODE_ENV=production
+   ExecStart=/usr/bin/node ${medienhaus_API_DIR}/index.js
+   Restart=always
+
+   [Install]
+   WantedBy=multi-user.target
+   EOF
+   ```
+   ```
+   systemctl enable medienhaus-api.service
+   ```
+   You can check if it’s working with `systemctl status medienhaus-api.service`.
+
+8. After the initial fetch, the application should be accessible on the specified port on localhost. If you receive a JSON response, everything is working as intended.
+   <br>
+   ```
+   curl http://localhost:${medienhaus_API_PORT:-3009}/api/v2
+   ```
+
+9. Optional: If you want to expose the caching API via a readable domain name instead of a port, you can achieve this with a reverse proxy like Nginx. Ensure that Nginx is installed and configured on your system, and install a certificate with Let’s Encrypt Certbot (many tutorials are available for this). Here’s an example Nginx reverse proxy configuration:
+   <br>
+   ```
+   medienhaus_API_FQDN=<YOUR_FQDN_HERE>
+   ```
+   ```
+   cat > /etc/nginx/sites-available/medienhaus-api << EOF
+   server {
+     listen 80;
+     server_name \${medienhaus_API_FQDN};
+     return 301 https://\$server_name\$request_uri;
+   }
+
+   server {
+     listen 443 ssl;
+     server_name ${medienhaus_API_FQDN};
+
+     ssl_certificate /etc/letsencrypt/live/${medienhaus_API_FQDN}/fullchain.pem;
+     ssl_certificate_key /etc/letsencrypt/live/${medienhaus_API_FQDN}/privkey.pem;
+
+     location / {
+       proxy_pass http://127.0.0.1:${medienhaus_API_PORT:-3009};
+       proxy_set_header Host \$host;
+       proxy_set_header X-Forwarded-For \$remote_addr;
+       proxy_set_header X-Forwarded-Proto \$scheme;
+     }
+   }
+   EOF
+   ```
+   ```
+   ln -s /etc/nginx/sites-available/medienhaus-api /etc/nginx/sites-enable/medienhaus-api
+   ```
+   Check if everything works fine with:
+   ```
+   nginx -t
+   ```
+   If no problems occur, restart Nginx with:
+   ```
+   systemctl restart nginx
+   ```
+
+**Note:** For some of the commands, you might need root privileges to execute: `sudo …`.
 
 ## Configuration
-Here you can find some hopefully useful informations which should support you with editing the `config.js`.
 
-### matrix
-Insert here your login credentials of the matrix server you want to fetch. It is absolut nessesrary that all 4 keys given in the example needs to be filled. The api starts always with one 'rootId' which is defined in the `root_context_space_id` key. From there on it is checking the space children of this id and based on recession algorithms fetches into an [matrix] datanetwork.
+Here you can find useful information to help you edit the `config.js` file.
 
-It makes the most sense to create a dedicated bot account which does the fetching. This would eliminate the risk that a user would sign out all devices and the access token in the config would be inactivated, which would result in a bricked caching api.
+### [matrix]
 
-You can get an access token from an [matrix] server via the `https://content.udk-berlin.de/_matrix/client/r0/login` route. Use a 'POST' request with a json body like this:
+Insert your login credentials for the [matrix] server you want to fetch data from. It’s essential to fill in all four keys provided in the example. The API always starts with a `rootId` defined in the `root_context_space_id` key. From there, it checks the space children of this ID and, based on recursive algorithms, fetches data from [matrix].
+
+It’s recommended to create a dedicated bot account for fetching. This eliminates the risk of a user signing out all devices and deactivating the access token in the config, which would result in a non-functional caching API.
+
+You can obtain an access token from a [matrix] server via the `https://content.udk-berlin.de/_matrix/client/r0/login` route. Use a `POST` request with a JSON body like this:
+
 ```
 {
-	"type": "m.login.password", "user": "youraccountname","password":"xxxxxxxxx"
+  "type": "m.login.password",
+  "user": "youraccountname",
+  "password": "xxxxxxxxx"
 }
 ```
 
- 
-### fetch
-Defines the functionality of the caching api when it comes to the fetching of the data from the [matrix] server itself. 
+### Fetch
 
-- `depth` — integer — maximal depth for recessions 
-- `max` — integer — maximal amount of cached [matrix] spaces
-- `interval` — seconds — how often shall the caching api fetch all data
-- `autoFetch` — boolean — enable/disable interval fetching
-- `dump` — boolean — enable/disable the usage of a previously fetched cache instead of fetching it new.
-- `initalyLoad` — boolean — enable/disable to fetches data initially once. This is only needed for used dump caches.
-- `noLog` — boolean — creates more detailed Logoutput while fetching
+The fetch configuration defines how the caching API retrieves data from the [matrix] server:
 
-### interfaces
-Which interfaces routes shall be publicly exposed with this application? 
-- `rest_v1` — boolean — enable/ disable rest v1 interface.
-- `rest_v2` — boolean — enable/ disable rest v2 interface. 
-- `graphql` — boolean — enable/ disable graqhql interface.
-- `graphql_playground` — boolean — enable/ disable playground for graphql. 
-- `post` — boolean — enable/ disable post routes which partially updates the cached data.
-- `dev` — boolean — enable/ disable develop routes which gives access to the raw fetched data as well as all 'state_events' for the fetched [matrix] id's. 
+- `depth` (integer): Specifies the maximal depth for recursive data retrieval.
+- `max` (integer): Sets the maximum number of [matrix] spaces to cache.
+- `interval` (seconds): Determines how often the caching API should fetch all data.
+- `autoFetch` (boolean): Enables or disables interval-based data fetching.
+- `dump` (boolean): Allows you to enable or disable the use of a previously cached dataset instead of fetching it anew.
+- `initiallyLoad` (boolean): Enables or disables the initial data fetching. This is primarily needed when using dump caches.
+- `noLog` (boolean): Controls whether detailed logging output is generated during data fetching.
+
+### Interfaces
+
+In this section, you can specify which interface routes should be publicly exposed by this application:
+
+- `rest_v1` (boolean): Enable or disable the REST v1 interface.
+- `rest_v2` (boolean): Enable or disable the REST v2 interface.
+- `graphql` (boolean): Enable or disable the GraphQL interface.
+- `graphql_playground` (boolean): Enable or disable the GraphQL playground.
+- `post` (boolean): Enable or disable POST routes, which allow partial updates to cached data.
+- `dev` (boolean): Enable or disable development routes, providing access to raw fetched data and all `state_events` for the fetched [matrix] IDs.
 
 ### application
 
-- `name` — String — Human Readable name of this application instance
-- `api_name` — String — machine readable name of this application instance. Avoid spaces in here. 
-- `standards` — Array of Objects — just keep it as it is :)
+- `name` (string): This is the human-readable name of your application instance.
+- `api_name` (string): This is the machine-readable name of your application instance. Avoid spaces in this name.
+- `standards` (array of objects): This array should be kept as it is. :)
 
-### ‌attributable
-Type definitions which are stored in the `dev.medienhaus.meta` [matrix] 'stateEvent'. It is explained in detail in the medienhaus/specifications.
+### attributable
 
-- `spaceTypes` — Object
+These type definitions are stored in the `dev.medienhaus.meta` [matrix] `stateEvent`. For more detailed information, refer to the medienhaus/ specification:
 
-- `context` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
-- `item` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
-- `content` — Array of Strings — should correspond with the entries from the config file for the corresponding medienhaus/cms instance.
+- `spaceTypes` (object)
+- `context` (array of strings): Corresponds with the entries from the config file for the corresponding medienhaus/cms instance.
+- `item` (array of strings): Corresponds with the entries from the config file for the corresponding medienhaus/cms instance.
+- `content` (array of strings): Corresponds with the entries from the config file for the corresponding medienhaus/cms instance.
