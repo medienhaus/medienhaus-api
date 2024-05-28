@@ -6,7 +6,7 @@ import { HttpService } from '@nestjs/axios'
 @Dependencies(ConfigService, HttpService)
 export class RestrainService {
   constructor (configService, httpService) {
-    this.ids = ['some id']
+    this.ids = []
     this.configService = configService
 
     const restrainTimeoutMinutes = this.configService.get('limits.restrainTimeout')
@@ -19,17 +19,17 @@ export class RestrainService {
   }
 
   restrainId (id) {
-    if (this.ids.includes(id)) {
+    if (this.ids.some(item => item.id === id)) {
       return { message: 'id already restrained' }
     } else {
-      this.ids.push(id)
+      this.ids.push({ id, timestamp: Date.now() })
       return { message: 'id restrained' }
     }
   }
 
   removeId (id) {
-    if (this.ids.includes(id)) {
-      this.ids = this.ids.filter((i) => i !== id)
+    if (this.ids.some(item => item.id === id)) {
+      this.ids = this.ids.filter(item => item.id !== id)
       return { message: 'id removed' }
     } else {
       return { message: 'id not found' }

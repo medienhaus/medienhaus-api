@@ -10,6 +10,11 @@ export class ApiRestrainController {
 
   // RESTRAIN ROUTES
 
+  @Get('api/v3/restrain')
+  apiRestrainList () {
+    return this.restrainService.getIds()
+  }
+
   @Post('api/v3/restrain/:id')
   @Bind(Param())
   async apiRestrainPost (params) {
@@ -21,11 +26,6 @@ export class ApiRestrainController {
   @Get('api/v3/restrain/timeout')
   apiRestrainTimeout () {
     return this.restrainService.getTimeout()
-  }
-
-  @Get('api/v3/restrain')
-  apiRestrainList () {
-    return this.restrainService.getIds()
   }
 
   @Delete('api/v3/restrain/:id')
