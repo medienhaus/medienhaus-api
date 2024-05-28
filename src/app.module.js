@@ -81,6 +81,6 @@ export class AppModule {
   configure (consumer) {
     consumer
       .apply(RestrainTokenMiddleware)
-      .forRoutes({ path: '/api/v3/restrain/*', method: RequestMethod.POST })
+      .forRoutes({ path: '/api/v3/restrain/*', method: RequestMethod.ALL })
   }
 }

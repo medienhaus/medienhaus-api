@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config'
-import { Dependencies, Injectable, Logger } from '@nestjs/common'
+import { Dependencies, Injectable } from '@nestjs/common'
 import { HttpService } from '@nestjs/axios'
 
 @Injectable()
@@ -19,14 +19,28 @@ export class RestrainService {
   }
 
   restrainId (id) {
+    if (this.ids.includes(id)) {
+      return { message: 'id already restrained' }
+    } else {
+      this.ids.push(id)
+      return { message: 'id restrained' }
+    }
+  }
 
+  removeId (id) {
+    if (this.ids.includes(id)) {
+      this.ids = this.ids.filter((i) => i !== id)
+      return { message: 'id removed' }
+    } else {
+      return { message: 'id not found' }
+    }
   }
 
   getIds () {
     return this.ids
   }
 
-  someTest () {
-    return this.configService.get('interfaces')
+  getTimeout () {
+    return this.configService.get('limits.restrainTimeout')
   }
 }
