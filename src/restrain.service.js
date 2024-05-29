@@ -40,6 +40,10 @@ export class RestrainService {
     return this.ids
   }
 
+  getIdsAsStringArray () {
+    return this.ids.map(item => item.id)
+  }
+
   getTimeout () {
     return this.configService.get('limits.restrainTimeout')
   }
