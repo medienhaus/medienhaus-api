@@ -1841,7 +1841,9 @@ export class ItemService {
     if (
       (space?.template === 'studentproject' || space?.template === 'event') &&
       space?.published === 'draft'
-    ) { return }
+    ) {
+      return
+    }
     currentDepth++
 
     // console.log(_.map(space?.descriptions, (desc) =>
@@ -2219,20 +2221,20 @@ export class ItemService {
     // we check first if it is even nessesary to loop through all of the data otherwise we will skip the whole process
     if (!ids || ids.length < 1) return data
     if (Array.isArray(data)) {
-      console.log('data is an array')
-      for (let entry in data) {
-        entry = this.filterOutRetrainIds(entry, ids)
+      for (const i in data) {
+        data[i] = this.filterOutRetrainIds(data[i], ids)
       }
       return data
     } else if (typeof data === 'object' && data !== null) {
-      console.log('data is an object')
       if (data.id && ids.includes(data.id)) {
         data = null
       } else if (data.item && data.item.length > 0) {
         data.item = this.filterOutRetrainIds(data.item, ids)
       }
     } else {
-      console.log('data is neither an array nor an object')
+      if (ids.includes(data)) {
+        return null
+      }
     }
 
     return data

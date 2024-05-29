@@ -33,6 +33,7 @@ import RestrainTokenMiddleware from './restrain-token.middleware'
       playground: true,
       introspection: true
     }),
+
     ScheduleModule.forRoot(),
     HttpModule
   ],

@@ -8,10 +8,10 @@ import { ConfigService } from '@nestjs/config'
 @Controller()
 @Dependencies(AppService, 'ITEM_PROVIDER', RestrainService, ConfigService)
 export class ApiV2Controller {
-  constructor (appService, itemService, retraintService, configService) {
+  constructor (appService, itemService, restraintService, configService) {
     this.appService = appService
     this.itemService = itemService
-    this.retraintService = retraintService
+    this.restraintService = restraintService
     this.configService = configService
   }
 
@@ -27,13 +27,14 @@ export class ApiV2Controller {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
     const ret = this.itemService.getAbstract(id)
     if (!ret) throw new NotFoundException()
-    return ret
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/path')
   @Bind(Param())
   apiV2GetPath ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
+
     return this.itemService.getPath(id)
   }
 
@@ -41,70 +42,80 @@ export class ApiV2Controller {
   @Bind(Param())
   apiV2GetPathList ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getPathList(id)
+    const ret = this.itemService.getPathList(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/tree')
   @Bind(Param())
   apiGetTree ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getTree(id)
+    const ret = this.itemService.getTree(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/tree/filter/type/context')
   @Bind(Param())
   apiGetTreeFiltedByContext ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getTreeFiltedByContext(id)
+    const ret = this.itemService.getTreeFiltedByContext(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/list')
   @Bind(Param())
   apiGetList ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getList(id)
+    const ret = this.itemService.getList(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/list/filter/allocation/temporal')
   @Bind(Param())
   apiGetFilteredByAllocationsTemporal ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getItemsFilteredByAllocationsTemporal(id)
+    const ret = this.itemService.getItemsFilteredByAllocationsTemporal(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/list/filter/user/:userId')
   @Bind(Param())
   apiGetFilteredByUserId ({ id, userId }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getItemsFilteredByUserId(id, userId)
+    const ret = this.itemService.getItemsFilteredByUserId(id, userId)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/list/filter/type/item')
   @Bind(Param())
   apiGetFilteredByItems ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getItemsFilteredByItems(id)
+    const ret = this.itemService.getItemsFilteredByItems(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/detailedList/filter/type/item')
   @Bind(Param())
   apiGetDetailedListFilteredByItems ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getDetailedItemsFilteredByItems(id)
+    const ret = this.itemService.getDetailedItemsFilteredByItems(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Post('/api/v2/:id/detailedList/filter/type/item')
   @Bind(Body(), Param())
   apiPostDetailedListFilteredByItems (body, { id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getDetailedItemsFilteredByItems(id, body?.depth)
+    const ret = this.itemService.getDetailedItemsFilteredByItems(id, body?.depth)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/render/json')
   @Bind(Param())
   apiGetRenderedJson ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getRenderedJson(id)
+    const ret = this.itemService.getRenderedJson(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   /// Stechlin Custom
@@ -113,42 +124,48 @@ export class ApiV2Controller {
   @Bind(Param())
   apiGetFullTree ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getFullTree(id)
+    const ret = this.itemService.getFullTree(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/fullList')
   @Bind(Param())
   apiGetFullList ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getFullList(id)
+    const ret = this.itemService.getFullList(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/fullList/filter/type/item')
   @Bind(Param())
   apiGetItemsOfFullListFilteredByItems ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getItemsOfFullListFilteredByItems(id)
+    const ret = this.itemService.getItemsOfFullListFilteredByItems(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/render/d3')
   @Bind(Param())
   apiGetAbstractAsD3 ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getD3Abstract(id)
+    const ret = this.itemService.getD3Abstract(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/api/v2/:id/render/d3/fulltree')
   @Bind(Param())
   apiGetAbstractAsD3Fulltree ({ id }) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.getD3FullTree(id)
+    const ret = this.itemService.getD3FullTree(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Post('api/v2/:id/fetch')
   @Bind(Body(), Param())
   apiPostFetch (body, params) {
     if (this.configService.get('interfaces.rest_v2') !== true) throw new HttpException('rest api v2 not enabled', HttpStatus.NOT_FOUND)
-    return this.itemService.postFetch(params.id, { parentId: body?.parentId })
+    const ret = this.itemService.postFetch(params.id, { parentId: body?.parentId })
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Get('/dev/rawSpaces')

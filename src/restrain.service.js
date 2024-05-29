@@ -36,6 +36,10 @@ export class RestrainService {
     }
   }
 
+  checkId (id) {
+    return this.ids.some(item => item.id === id)
+  }
+
   getIds () {
     return this.ids
   }
