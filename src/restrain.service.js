@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config'
-import { Dependencies, Injectable } from '@nestjs/common'
+import { Dependencies, Injectable, HttpException, HttpStatus } from '@nestjs/common'
 import { HttpService } from '@nestjs/axios'
 
 @Injectable()
@@ -8,6 +8,7 @@ export class RestrainService {
   constructor (configService, httpService) {
     this.ids = []
     this.configService = configService
+    this.httpService = httpService
 
     const restrainTimeoutMinutes = this.configService.get('limits.restrainTimeout')
     const restrainTimeoutMilliseconds = restrainTimeoutMinutes * 60 * 1000 // convert minutes to milliseconds
@@ -18,11 +19,13 @@ export class RestrainService {
     }, restrainTimeoutMilliseconds)
   }
 
-  restrainId (id) {
+  async restrainId (id) {
     if (this.ids.some(item => item.id === id)) {
-      return { message: 'id already restrained' }
+      throw new HttpException('ID already restrained', HttpStatus.CONFLICT)
     } else {
-      this.ids.push({ id, timestamp: Date.now() })
+      const url = 'http://localhost:' + (process.env.API_PORT ? process.env.API_PORT : 3009) + '/api/v2/' + id
+      const d = await this.httpService.axiosRef(url)
+      this.ids.push({ restrain: { timestamp: Date.now() }, ...d.data })
       return { message: 'id restrained' }
     }
   }

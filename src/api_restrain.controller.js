@@ -14,7 +14,6 @@ export class ApiRestrainController {
 
   @Get('api/v3/restrain')
   apiRestrainList () {
-    console.log(this.configService.get('interfaces.restrain'))
     if (this.configService.get('interfaces.restrain') !== true) throw new HttpException('restrain not enabled', HttpStatus.NOT_FOUND)
     return this.restrainService.getIds()
   }
@@ -25,7 +24,7 @@ export class ApiRestrainController {
     if (this.configService.get('interfaces.restrain') !== true) throw new HttpException('restrain not enabled', HttpStatus.NOT_FOUND)
     const id = params.id
     if (!id) throw new HttpException('id not found', HttpStatus.NOT_FOUND)
-    return this.restrainService.restrainId(id)
+    return await this.restrainService.restrainId(id)
   }
 
   @Get('api/v3/restrain/timeout')
