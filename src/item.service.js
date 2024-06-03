@@ -2218,13 +2218,13 @@ export class ItemService {
   }
 
   filterOutRetrainIds (data, ids) {
-    // we check first if it is even nessesary to loop through all of the data otherwise we will skip the whole process
+    // we check first if it is even necessary to loop through all of the data otherwise we will skip the whole process
     if (!ids || ids.length < 1) return data
     if (Array.isArray(data)) {
       for (const i in data) {
         data[i] = this.filterOutRetrainIds(data[i], ids)
       }
-      return data
+      return data.filter(item => item !== null)
     } else if (typeof data === 'object' && data !== null) {
       if (data.id && ids.includes(data.id)) {
         data = null
