@@ -115,7 +115,6 @@ export class ItemResolver {
       }
     }
 
-    console.log(ret)
     return this.configService.get('interfaces.restrain')
       ? this.itemService.filterOutRetrainIds(
         ret,
