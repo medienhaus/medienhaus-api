@@ -6,10 +6,8 @@ import { HttpService } from '@nestjs/axios'
 import Handlebars from 'handlebars'
 import fs from 'fs'
 import { join } from 'path'
-import moment from 'moment'
-import { isNull, template } from 'lodash'
+import { isNull } from 'lodash'
 import { LegacyInterpreter } from './legacy-interpreter.service'
-import { Console } from 'console'
 
 export const test = 10000
 
@@ -49,7 +47,11 @@ export class ItemService {
     this.getAllSpaces = this.getAllSpaces.bind(this)
     this.getBatch = this.getBatch.bind(this)
 
-    this.legacyInterpreter = new LegacyInterpreter(this.configService, this.httpService, this.matrixClient)
+    this.legacyInterpreter = new LegacyInterpreter(
+      this.configService,
+      this.httpService,
+      this.matrixClient
+    )
   }
 
   async fetch () {
@@ -84,7 +86,9 @@ export class ItemService {
     const structure = {}
     this.graphQlCache = {}
     this._allRawSpaces = allSpaces
-    this.allSpaces = await this.generateAllSpaces(allSpaces, { noLog: this.configService.get('fetch.noLog') })
+    this.allSpaces = await this.generateAllSpaces(allSpaces, {
+      noLog: this.configService.get('fetch.noLog')
+    })
     structure[generatedStrucute.room_id] = generatedStrucute
     this.structure = structure
     this.contents = []
@@ -127,13 +131,24 @@ export class ItemService {
       }
     })
 
-    Logger.log('Fetched ' + Object.keys(allSpaces).length + ' spaces with ' + Object.keys(this.items).length + ' items, after: ' + Math.round((Date.now() - this.fistFetch) / 10 / 60) / 100 + ' minutes,  which took: ' + (Math.round((((Date.now() - fetchStart) / 1000) * 100) / 100)) + ' seconds')
+    Logger.log(
+      'Fetched ' +
+        Object.keys(allSpaces).length +
+        ' spaces with ' +
+        Object.keys(this.items).length +
+        ' items, after: ' +
+        Math.round((Date.now() - this.fistFetch) / 10 / 60) / 100 +
+        ' minutes,  which took: ' +
+        Math.round((((Date.now() - fetchStart) / 1000) * 100) / 100) +
+        ' seconds'
+    )
     this.lastFetch = Date.now()
     if (!this.initiallyFetched) this.initiallyFetched = true
 
     if (this.configService.get('fetch.dump')) {
-      fs.writeFileSync('./dump/dump.json', JSON.stringify(
-        {
+      fs.writeFileSync(
+        './dump/dump.json',
+        JSON.stringify({
           allSpaces: this.allSpaces,
           items: this.items,
           structure: this.structure,
@@ -141,8 +156,8 @@ export class ItemService {
           servers: this.servers,
           users: this.users,
           contents: this.contents
-        }
-      ))
+        })
+      )
     }
   }
 
@@ -174,7 +189,6 @@ export class ItemService {
         options.max,
         options.depth
       )
-    //! hierarchyBatch.next_batch ? hirachy :
     hirachy.push(...hierarchyBatch.rooms)
     if (!hierarchyBatch?.next_batch) {
       return hirachy
@@ -252,13 +266,29 @@ export class ItemService {
       })
 
       // legacy patched
-      if (!['item', 'context', 'content'].some(f => f === metaEvent?.content?.type)) {
+      if (
+        !['item', 'context', 'content'].some(
+          (f) => f === metaEvent?.content?.type
+        )
+      ) {
         let legacyType
-        if (this.configService.get('attributable.spaceTypes.context').some((f) => f === metaEvent?.content?.type)) {
+        if (
+          this.configService
+            .get('attributable.spaceTypes.context')
+            .some((f) => f === metaEvent?.content?.type)
+        ) {
           legacyType = 'context'
-        } else if (this.configService.get('attributable.spaceTypes.item').some((f) => f === metaEvent?.content?.type)) {
+        } else if (
+          this.configService
+            .get('attributable.spaceTypes.item')
+            .some((f) => f === metaEvent?.content?.type)
+        ) {
           legacyType = 'item'
-        } else if (this.configService.get('attributable.spaceTypes.content').some((f) => f === metaEvent?.content?.type)) {
+        } else if (
+          this.configService
+            .get('attributable.spaceTypes.content')
+            .some((f) => f === metaEvent?.content?.type)
+        ) {
           legacyType = 'content'
         }
         const legacyTemplate = metaEvent?.content?.type
@@ -335,8 +365,17 @@ export class ItemService {
     const tagEvent = _.find(stateEvents, { type: 'dev.medienhaus.tags' })
     const joinRulesEvent = _.find(stateEvents, { type: 'm.room.join_rules' })
 
-    if (!['item', 'context', 'content'].some((f) => f === metaEvent?.content?.type)) { // check if legacy from old CMS
-      return this.legacyInterpreter.convertLegacySpace(stateEvents, spaceId, rawSpaces)
+    if (
+      !['item', 'context', 'content'].some(
+        (f) => f === metaEvent?.content?.type
+      )
+    ) {
+      // check if legacy from old CMS
+      return this.legacyInterpreter.convertLegacySpace(
+        stateEvents,
+        spaceId,
+        rawSpaces
+      )
     }
 
     const createEvent = _.find(stateEvents, { type: 'm.room.create' })
@@ -486,7 +525,11 @@ export class ItemService {
       _.forEach(potentialChildren, (child) => {
         if (_.find(child?.stateEvents, { type: 'dev.medienhaus.meta' })) {
           // Check if the potentialChild is not a outdated StateEvent and is als part of the 'children_state'. This might not work with federation, need a closer check then.
-          if (_.find(rawSpaces[spaceId]?.children_state, { state_key: child.room_id })) {
+          if (
+            _.find(rawSpaces[spaceId]?.children_state, {
+              state_key: child.room_id
+            })
+          ) {
             children.push(child.room_id)
           }
         }
@@ -1022,37 +1065,60 @@ export class ItemService {
 
           if (!lastMessage) return
 
-          const template = contentRoom.name.substring(contentRoom.name.indexOf('_') + 1)
+          const template = contentRoom.name.substring(
+            contentRoom.name.indexOf('_') + 1
+          )
           const content = (() => {
             switch (template) {
               case 'audio':
               case 'file':
               case 'image':
                 return matrixClient.mxcUrlToHttp(lastMessage.content.url)
-              default: return lastMessage.content.body
+              default:
+                return lastMessage.content.body
             }
           })()
           const formattedContent = (() => {
             switch (template) {
               case 'heading':
                 if (lastMessage?.content?.body?.includes('#')) {
-                  return Handlebars.compile(fs.readFileSync(join(__dirname, '..', 'views', 'contentBlocks', 'heading.hbs'), 'utf8'))({
+                  return Handlebars.compile(
+                    fs.readFileSync(
+                      join(
+                        __dirname,
+                        '..',
+                        'views',
+                        'contentBlocks',
+                        'heading.hbs'
+                      ),
+                      'utf8'
+                    )
+                  )({
                     content: lastMessage?.content.formatted_body,
                     matrixEventContent: lastMessage.content
                   })
                 }
                 break
-                // For text, ul and ol we just return whatever's stored in the Matrix event's formatted_body
+              // For text, ul and ol we just return whatever's stored in the Matrix event's formatted_body
               case 'text':
-                return Handlebars.compile(fs.readFileSync(join(__dirname, '..', 'views', 'contentBlocks', 'text.hbs'), 'utf8'))({
+                return Handlebars.compile(
+                  fs.readFileSync(
+                    join(__dirname, '..', 'views', 'contentBlocks', 'text.hbs'),
+                    'utf8'
+                  )
+                )({
                   content: lastMessage.content.formatted_body
                 })
               case 'ul':
               case 'ol':
                 return lastMessage.content.formatted_body
-                // For all other types we render the HTML using the corresponding Handlebars template in /views/contentBlocks
+              // For all other types we render the HTML using the corresponding Handlebars template in /views/contentBlocks
               default:
-                if (!this.configService.get('attributable.spaceTypes.content').some((f) => f === template)) {
+                if (
+                  !this.configService
+                    .get('attributable.spaceTypes.content')
+                    .some((f) => f === template)
+                ) {
                   return ''
                 }
                 return Handlebars.compile(
@@ -1216,7 +1282,9 @@ export class ItemService {
         DE: space?.topicDe
       },
       parents: parentIds,
-      localDepth: space.localDepth ? space.localDepth : this.getPathList(id)?.length,
+      localDepth: space.localDepth
+        ? space.localDepth
+        : this.getPathList(id)?.length,
       ...this._abstractTypes(this._sortChildren(space.children)) // seems to return the wrong spaces, fixing later
     }
   }
@@ -1747,7 +1815,11 @@ export class ItemService {
   // converting to type orientated schema from graphql. This is such a mess, rewrite highly needed!
   convertSpaces (spaces, newSpace = false) {
     return _.map(spaces, (space) => {
-      if (newSpace) { return this.convertSpace(space?.id) } else { return this.convertSpace(space?.id, space) }
+      if (newSpace) {
+        return this.convertSpace(space?.id)
+      } else {
+        return this.convertSpace(space?.id, space)
+      }
     })
   }
 
@@ -1763,7 +1835,12 @@ export class ItemService {
     space.context = types.context
     space.content = types.content
 
-    if ((space?.template === 'studentproject' || space?.template === 'event') && space?.published === 'draft') return
+    if (
+      (space?.template === 'studentproject' || space?.template === 'event') &&
+      space?.published === 'draft'
+    ) {
+      return
+    }
     currentDepth++
 
     // console.log(_.map(space?.descriptions, (desc) =>
@@ -1775,16 +1852,39 @@ export class ItemService {
       name: space?.name,
       type: space?.type,
       template: space?.template,
-      item: _.reduce(space?.item, (ret, item) => { const e = this.convertSpace(item?.id, null, currentDepth, maxDepth); if (e != null && e !== undefined && e !== '') { ret.push(e) };return ret }, []),
-      context: _.reduce(space?.context, (ret, context) => { const e = this.convertSpace(context?.id, null, currentDepth, maxDepth); if (e != null && e !== undefined && e !== '') { ret.push(e) };return ret }, []),
+      item: _.reduce(
+        space?.item,
+        (ret, item) => {
+          const e = this.convertSpace(item?.id, null, currentDepth, maxDepth)
+          if (e != null && e !== undefined && e !== '') {
+            ret.push(e)
+          }
+          return ret
+        },
+        []
+      ),
+      context: _.reduce(
+        space?.context,
+        (ret, context) => {
+          const e = this.convertSpace(
+            context?.id,
+            null,
+            currentDepth,
+            maxDepth
+          )
+          if (e != null && e !== undefined && e !== '') {
+            ret.push(e)
+          }
+          return ret
+        },
+        []
+      ),
       content: _.map(space?.content, (content) =>
         this.convertSpace(content.id)
       ),
-      description:
-         _.map(space?.descriptions, (desc) => {
-           return this.convertDescription(desc?.id, desc)
-         }
-         ),
+      description: _.map(space?.descriptions, (desc) => {
+        return this.convertDescription(desc?.id, desc)
+      }),
       thumbnail: space?.thumbnail,
       thumbnail_full_size: space?.thumbnail_full_size,
       parents: _.map(space?.parents, (parent) => {
@@ -2112,5 +2212,28 @@ export class ItemService {
       counter += 1
     }
     return result
+  }
+
+  filterOutRetrainIds (data, ids) {
+    // we check first if it is even necessary to loop through all of the data otherwise we will skip the whole process
+    if (!ids || ids.length < 1) return data
+    if (Array.isArray(data)) {
+      for (const i in data) {
+        data[i] = this.filterOutRetrainIds(data[i], ids)
+      }
+      return data.filter(item => item !== null)
+    } else if (typeof data === 'object' && data !== null) {
+      if (data.id && ids.includes(data.id)) {
+        data = null
+      } else if (data.item && data.item.length > 0) {
+        data.item = this.filterOutRetrainIds(data.item, ids)
+      }
+    } else {
+      if (ids.includes(data)) {
+        return null
+      }
+    }
+
+    return data
   }
 }

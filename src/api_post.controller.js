@@ -1,7 +1,5 @@
-import { Bind, Controller, Dependencies, Delete, Post, Body, Req, Param, NotFoundException, HttpException, HttpStatus } from '@nestjs/common'
+import { Bind, Controller, Dependencies, Delete, Post, Body, Param, NotFoundException } from '@nestjs/common'
 import { AppService } from './app.service'
-
-import _ from 'lodash'
 
 @Controller()
 @Dependencies(AppService, 'ITEM_PROVIDER')

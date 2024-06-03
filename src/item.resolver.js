@@ -1,36 +1,50 @@
 import {
-  Field,
-  Int,
-  ObjectTyp,
   Resolver,
   Query,
-  Args,
-  ObjectType
+  Args
 } from '@nestjs/graphql'
 import { Bind, Dependencies, NotFoundException } from '@nestjs/common'
 import { AppService } from './app.service'
 import _ from 'lodash'
 
+import { RestrainService } from './restrain.service'
+import { ConfigService } from '@nestjs/config'
+
 @Resolver('Space')
-@Dependencies(AppService, 'ITEM_PROVIDER')
+@Dependencies(AppService, 'ITEM_PROVIDER', RestrainService, ConfigService)
 export class ItemResolver {
-  constructor (appService, itemService) {
+  constructor (appService, itemService, restraintService, configService) {
     this.appService = appService
     this.itemService = itemService
+    this.configService = configService
+    this.restraintService = restraintService
   }
 
   @Query()
   @Bind(Args())
   async entries ({ template, type }) {
-    return this.itemService.convertSpaces(
+    const ret = this.itemService.convertSpaces(
       this.itemService.getSpaces(template, type)
     )
+    return this.configService.get('interfaces.restrain')
+      ? this.itemService.filterOutRetrainIds(
+        ret,
+        this.restraintService.getIdsAsStringArray()
+      )
+      : ret
   }
 
   @Query()
   @Bind(Args())
   async entry ({ id }) {
-    return this.itemService.convertSpace(id)
+    const ret = this.itemService.convertSpace(id)
+
+    return this.configService.get('interfaces.restrain')
+      ? this.itemService.filterOutRetrainIds(
+        ret,
+        this.restraintService.getIdsAsStringArray()
+      )
+      : ret
   }
 
   // META TYPES
@@ -42,8 +56,16 @@ export class ItemResolver {
   async context ({ id }) {
     if (!id) return {}
     const space = this.itemService.convertSpace(id)
+    let ret
     if (space && space?.type === 'context') {
-      return space
+      ret = space
+
+      return this.configService.get('interfaces.restrain')
+        ? this.itemService.filterOutRetrainIds(
+          ret,
+          this.restraintService.getIdsAsStringArray()
+        )
+        : ret
     } else {
       throw new NotFoundException()
     }
@@ -53,13 +75,23 @@ export class ItemResolver {
   @Bind(Args())
   async contexts ({ pagination, start = 0, offset, template }) {
     const spaces = this.itemService.getSpaces(template, 'context')
-    if (!pagination) return spaces
+    let ret
+    if (!pagination) ret = spaces
 
-    if (offset) {
-      return spaces.slice(start, start + offset)
-    } else {
-      return spaces.slice(start)
+    if (pagination) {
+      if (offset) {
+        ret = spaces.slice(start, start + offset)
+      } else {
+        ret = spaces.slice(start)
+      }
     }
+
+    return this.configService.get('interfaces.restrain')
+      ? this.itemService.filterOutRetrainIds(
+        ret,
+        this.restraintService.getIdsAsStringArray()
+      )
+      : ret
   }
 
   //  ITEM
@@ -68,14 +100,27 @@ export class ItemResolver {
   @Bind(Args())
   async items ({ pagination, start = 0, offset, template }) {
     // const spaces = this.itemService.getSpaces(template, 'item', this.itemService.convertSpaces(this.itemService.allSpaces))
-    const spaces = this.itemService.convertSpaces(this.itemService.getSpaces(template, 'item'), true)
-    if (!pagination) return spaces
+    const spaces = this.itemService.convertSpaces(
+      this.itemService.getSpaces(template, 'item'),
+      true
+    )
+    let ret
+    if (!pagination) ret = spaces
 
-    if (offset) {
-      return spaces.slice(start, start + offset)
-    } else {
-      return spaces.slice(start)
+    if (pagination) {
+      if (offset) {
+        ret = spaces.slice(start, start + offset)
+      } else {
+        ret = spaces.slice(start)
+      }
     }
+
+    return this.configService.get('interfaces.restrain')
+      ? this.itemService.filterOutRetrainIds(
+        ret,
+        this.restraintService.getIdsAsStringArray()
+      )
+      : ret
   }
 
   @Query()
@@ -83,12 +128,19 @@ export class ItemResolver {
   async item ({ id }) {
     if (!id) return {}
     const space = this.itemService.convertSpace(id)
-
+    let ret
     if (space && space?.type === 'item') {
-      return space
+      ret = space
     } else {
       throw new NotFoundException()
     }
+
+    return this.configService.get('interfaces.restrain')
+      ? this.itemService.filterOutRetrainIds(
+        ret,
+        this.restraintService.getIdsAsStringArray()
+      )
+      : ret
   }
 
   // @Query()
@@ -121,13 +173,16 @@ export class ItemResolver {
   @Query()
   @Bind(Args())
   async user ({ id }) {
-    return this.itemService.getUser(id)
+    const ret = this.itemService.getUser(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Query()
   async users () {
-    return _.map(this.itemService.users, (user) =>
-      this.itemService.getUser(user.id)
+    return _.map(this.itemService.users, (user) => {
+      const ret = this.itemService.getUser(user.id)
+      return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
+    }
     )
   }
 

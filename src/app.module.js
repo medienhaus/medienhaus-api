@@ -1,18 +1,22 @@
-import { Module } from '@nestjs/common'
+import { Module, RequestMethod } from '@nestjs/common'
 import { AppController } from './app.controller'
 import { ApiV2Controller } from './api_v2.controller'
 import { ApiPostController } from './api_post.controller'
+import { ApiRestrainController } from './api_restrain.controller'
 import { AppService } from './app.service'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import configuration from '../config'
 import { ItemService } from './item.service'
+import { RestrainService } from './restrain.service'
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule'
 import { HttpModule, HttpService } from '@nestjs/axios'
 import { GraphQLModule } from '@nestjs/graphql'
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
+import { ApolloDriver } from '@nestjs/apollo'
 import { ItemResolver } from './item.resolver'
 import { join } from 'path'
 import * as fs from 'fs'
+
+import RestrainTokenMiddleware from './restrain-token.middleware'
 
 @Module({
   imports: [
@@ -29,10 +33,11 @@ import * as fs from 'fs'
       playground: true,
       introspection: true
     }),
+
     ScheduleModule.forRoot(),
     HttpModule
   ],
-  controllers: [AppController, ApiV2Controller, ApiPostController],
+  controllers: [AppController, ApiV2Controller, ApiPostController, ApiRestrainController],
   providers: [
     AppService,
     {
@@ -69,7 +74,14 @@ import * as fs from 'fs'
         return x
       }
     },
+    RestrainService,
     ItemResolver
   ]
 })
-export class AppModule {}
+export class AppModule {
+  configure (consumer) {
+    consumer
+      .apply(RestrainTokenMiddleware)
+      .forRoutes({ path: '/api/v3/restrain/*', method: RequestMethod.ALL })
+  }
+}
