@@ -173,13 +173,16 @@ export class ItemResolver {
   @Query()
   @Bind(Args())
   async user ({ id }) {
-    return this.itemService.getUser(id)
+    const ret = this.itemService.getUser(id)
+    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
   }
 
   @Query()
   async users () {
-    return _.map(this.itemService.users, (user) =>
-      this.itemService.getUser(user.id)
+    return _.map(this.itemService.users, (user) => {
+      const ret = this.itemService.getUser(user.id)
+      return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
+    }
     )
   }
 
