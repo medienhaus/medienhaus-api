@@ -1,4 +1,4 @@
-import { Bind, Controller, Dependencies, Post, Body, Param, Delete, NotFoundException, HttpException, HttpStatus, Get } from '@nestjs/common'
+import { Bind, Controller, Dependencies, Post, Param, Delete, HttpException, HttpStatus, Get } from '@nestjs/common'
 import { RestrainService } from './restrain.service'
 
 import { ConfigService } from '@nestjs/config'

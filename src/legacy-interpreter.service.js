@@ -2,13 +2,10 @@ import { Dependencies, Injectable, Logger } from '@nestjs/common'
 import { createClient as createMatrixClient } from 'matrix-js-sdk'
 import { ConfigService } from '@nestjs/config'
 import * as _ from 'lodash'
-import { Interval } from '@nestjs/schedule'
 import { HttpService } from '@nestjs/axios'
 import Handlebars from 'handlebars'
 import fs from 'fs'
 import { join } from 'path'
-import moment from 'moment'
-import { isNull, template } from 'lodash'
 
 @Injectable()
 @Dependencies(ConfigService, HttpService)

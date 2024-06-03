@@ -6,10 +6,8 @@ import { HttpService } from '@nestjs/axios'
 import Handlebars from 'handlebars'
 import fs from 'fs'
 import { join } from 'path'
-import moment from 'moment'
-import { isNull, template } from 'lodash'
+import { isNull } from 'lodash'
 import { LegacyInterpreter } from './legacy-interpreter.service'
-import { Console } from 'console'
 
 export const test = 10000
 
@@ -191,7 +189,6 @@ export class ItemService {
         options.max,
         options.depth
       )
-    //! hierarchyBatch.next_batch ? hirachy :
     hirachy.push(...hierarchyBatch.rooms)
     if (!hierarchyBatch?.next_batch) {
       return hirachy

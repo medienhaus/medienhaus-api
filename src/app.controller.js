@@ -1,8 +1,5 @@
 import { Bind, Controller, Dependencies, Get, NotFoundException, HttpException, HttpStatus, Param } from '@nestjs/common'
 import { AppService } from './app.service'
-
-import _ from 'lodash'
-
 import { ConfigService } from '@nestjs/config'
 
 @Controller()

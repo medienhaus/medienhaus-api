@@ -1,11 +1,7 @@
 import {
-  Field,
-  Int,
-  ObjectTyp,
   Resolver,
   Query,
-  Args,
-  ObjectType
+  Args
 } from '@nestjs/graphql'
 import { Bind, Dependencies, NotFoundException } from '@nestjs/common'
 import { AppService } from './app.service'
