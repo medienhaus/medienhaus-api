@@ -15,6 +15,7 @@ import { ApolloDriver } from '@nestjs/apollo'
 import { ItemResolver } from './item.resolver'
 import { join } from 'path'
 import * as fs from 'fs'
+import { ThrottlerModule } from '@nestjs/throttler'
 
 import RestrainTokenMiddleware from './restrain-token.middleware'
 
@@ -33,11 +34,33 @@ import RestrainTokenMiddleware from './restrain-token.middleware'
       playground: true,
       introspection: true
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,
+        limit: 3
+      },
+      {
+        name: 'medium',
+        ttl: 10000,
+        limit: 20
+      },
+      {
+        name: 'long',
+        ttl: 60000,
+        limit: 100
+      }
+    ]),
 
     ScheduleModule.forRoot(),
     HttpModule
   ],
-  controllers: [AppController, ApiV2Controller, ApiPostController, ApiRestrainController],
+  controllers: [
+    AppController,
+    ApiV2Controller,
+    ApiPostController,
+    ApiRestrainController
+  ],
   providers: [
     AppService,
     {
@@ -45,7 +68,10 @@ import RestrainTokenMiddleware from './restrain-token.middleware'
       inject: [ConfigService, HttpService, SchedulerRegistry],
       useFactory: async (configService, httpService, schedulerRegistry) => {
         const x = new ItemService(configService, httpService)
-        if (fs.existsSync('./dump/dump.json') && configService.get('fetch.dump')) {
+        if (
+          fs.existsSync('./dump/dump.json') &&
+          configService.get('fetch.dump')
+        ) {
           console.log('loading dump')
           const dump = JSON.parse(fs.readFileSync('./dump/dump.json'))
           if (dump) {
@@ -67,7 +93,10 @@ import RestrainTokenMiddleware from './restrain-token.middleware'
           const fetchCallback = async () => {
             await x.fetch()
           }
-          const fetchInterval = setInterval(fetchCallback, x.configService.get('fetch.interval') * 1000) // seconds to ms
+          const fetchInterval = setInterval(
+            fetchCallback,
+            x.configService.get('fetch.interval') * 1000
+          ) // seconds to ms
           schedulerRegistry.addInterval('fetchInterval', fetchInterval)
         }
         x._generateLocalDepth()

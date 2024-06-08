@@ -4,6 +4,7 @@ import { join } from 'path'
 import hbs from 'hbs'
 import moment from 'moment'
 import { Logger } from '@nestjs/common'
+import { ThrottlerGuard, ThrottlerService } from '@nestjs/throttler'
 
 async function bootstrap () {
   const app = await NestFactory.create(AppModule)
@@ -11,12 +12,6 @@ async function bootstrap () {
   app.useStaticAssets(join(__dirname, '..', 'public'))
   app.setBaseViewsDir(join(__dirname, '..', 'views'))
   hbs.registerPartials(join(__dirname, '..', 'views'))
-  // hbs.registerPartials(join(__dirname, '..', 'views', 'contentBlocks'))
-  // hbs.registerHelper('navigationMenu', function ({ ...data }) {
-  //   if (data.data.root.language === 'en') return 'en/header'
-  //
-  //   return 'header'
-  // })
   hbs.registerHelper('greaterThan', function (length, index, options) {
     if (length > 1 && index < length - 1) {
       return options.fn(this)
@@ -35,6 +30,7 @@ async function bootstrap () {
     app.setGlobalPrefix(process.env.GLOBAL_URL_PREFIX)
   }
   app.enableCors()
+  app.useGlobalGuards(new ThrottlerGuard(app.get(ThrottlerService)))
   if (process.env.API_PORT) {
     await app.listen(process.env.API_PORT)
   } else {
