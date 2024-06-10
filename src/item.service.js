@@ -104,7 +104,7 @@ export class ItemService {
     })
 
     filtedObjects.forEach((ele) => {
-      if(this.items[Object.keys(ele)?[0]]) this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
+      if(this.items[Object.keys(ele)[0]]) this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
     })
 
     // new for graphQL functionality
