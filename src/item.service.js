@@ -104,7 +104,7 @@ export class ItemService {
     })
 
     filtedObjects.forEach((ele) => {
-      if(this.items[Object.keys(ele)[0]]) this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
+      if (Object.keys(ele)[0] && this.items[Object.keys(ele)[0]]) this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
     })
 
     // new for graphQL functionality
@@ -146,6 +146,9 @@ export class ItemService {
     if (!this.initiallyFetched) this.initiallyFetched = true
 
     if (this.configService.get('fetch.dump')) {
+      if (!fs.existsSync('./dump/dump.json')) {
+        fs.mkdirSync('./dump/', { recursive: true })
+      }
       fs.writeFileSync(
         './dump/dump.json',
         JSON.stringify({

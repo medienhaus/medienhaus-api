@@ -37,7 +37,12 @@ import RestrainTokenMiddleware from './restrain-token.middleware'
     ScheduleModule.forRoot(),
     HttpModule
   ],
-  controllers: [AppController, ApiV2Controller, ApiPostController, ApiRestrainController],
+  controllers: [
+    AppController,
+    ApiV2Controller,
+    ApiPostController,
+    ApiRestrainController
+  ],
   providers: [
     AppService,
     {
@@ -45,9 +50,12 @@ import RestrainTokenMiddleware from './restrain-token.middleware'
       inject: [ConfigService, HttpService, SchedulerRegistry],
       useFactory: async (configService, httpService, schedulerRegistry) => {
         const x = new ItemService(configService, httpService)
-        if (fs.existsSync('./dump/dump.json') && configService.get('fetch.dump')) {
+        if (
+          fs.existsSync('./dump/dump.json') &&
+          configService.get('fetch.dump')
+        ) {
           console.log('loading dump')
-          const dump = JSON.parse(fs.readFileSync('./dump/dump.json'))
+          const dump = fs.readFileSync('./dump/dump.json') ? JSON.parse(fs.readFileSync('./dump/dump.json')) : (fs.mkdirSync('./dump/', { recursive: true }) && {})
           if (dump) {
             x.allSpaces = dump.allSpaces
             x.items = dump.items
@@ -67,7 +75,10 @@ import RestrainTokenMiddleware from './restrain-token.middleware'
           const fetchCallback = async () => {
             await x.fetch()
           }
-          const fetchInterval = setInterval(fetchCallback, x.configService.get('fetch.interval') * 1000) // seconds to ms
+          const fetchInterval = setInterval(
+            fetchCallback,
+            x.configService.get('fetch.interval') * 1000
+          ) // seconds to ms
           schedulerRegistry.addInterval('fetchInterval', fetchInterval)
         }
         x._generateLocalDepth()
