@@ -103,8 +103,8 @@ export class ItemService {
       return { [space.id]: space }
     })
 
-    filtedObjects.forEach((ele) => {
-      if (Object.keys(ele)[0] && this.items[Object.keys(ele)[0]]) this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
+    filtedObjects?.forEach((ele) => {
+      this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
     })
 
     // new for graphQL functionality
