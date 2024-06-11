@@ -1,8 +1,4 @@
-import {
-  Resolver,
-  Query,
-  Args
-} from '@nestjs/graphql'
+import { Resolver, Query, Args } from '@nestjs/graphql'
 import { Bind, Dependencies, NotFoundException } from '@nestjs/common'
 import { AppService } from './app.service'
 import _ from 'lodash'
@@ -174,16 +170,25 @@ export class ItemResolver {
   @Bind(Args())
   async user ({ id }) {
     const ret = this.itemService.getUser(id)
-    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
+    return this.configService.get('interfaces.restrain')
+      ? this.itemService.filterOutRetrainIds(
+        ret,
+        this.restraintService.getIdsAsStringArray()
+      )
+      : ret
   }
 
   @Query()
   async users () {
     return _.map(this.itemService.users, (user) => {
       const ret = this.itemService.getUser(user.id)
-      return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
-    }
-    )
+      return this.configService.get('interfaces.restrain')
+        ? this.itemService.filterOutRetrainIds(
+          ret,
+          this.restraintService.getIdsAsStringArray()
+        )
+        : ret
+    })
   }
 
   // SERVER
