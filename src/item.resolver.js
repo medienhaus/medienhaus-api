@@ -1,15 +1,10 @@
-import {
-  Resolver,
-  Query,
-  Args
-} from '@nestjs/graphql'
+import { Resolver, Query, Args } from '@nestjs/graphql'
 import { Bind, Dependencies, NotFoundException } from '@nestjs/common'
 import { AppService } from './app.service'
 import _ from 'lodash'
 
 import { RestrainService } from './restrain.service'
 import { ConfigService } from '@nestjs/config'
-import { Throttle } from '@nestjs/throttler'
 
 @Resolver('Space')
 @Dependencies(AppService, 'ITEM_PROVIDER', RestrainService, ConfigService)
@@ -21,7 +16,6 @@ export class ItemResolver {
     this.restraintService = restraintService
   }
 
-  @Throttle(10, 60)
   @Query()
   @Bind(Args())
   async entries ({ template, type }) {
@@ -36,7 +30,6 @@ export class ItemResolver {
       : ret
   }
 
-  @Throttle(10, 60)
   @Query()
   @Bind(Args())
   async entry ({ id }) {
@@ -54,7 +47,6 @@ export class ItemResolver {
 
   //  CONTEXT
 
-  @Throttle(10, 60)
   @Query()
   @Bind(Args())
   async context ({ id }) {
@@ -75,7 +67,6 @@ export class ItemResolver {
     }
   }
 
-  @Throttle(10, 60)
   @Query()
   @Bind(Args())
   async contexts ({ pagination, start = 0, offset, template }) {
@@ -101,7 +92,6 @@ export class ItemResolver {
 
   //  ITEM
 
-  @Throttle(10, 60)
   @Query()
   @Bind(Args())
   async items ({ pagination, start = 0, offset, template }) {
@@ -129,7 +119,6 @@ export class ItemResolver {
       : ret
   }
 
-  @Throttle(10, 60)
   @Query()
   @Bind(Args())
   async item ({ id }) {
@@ -158,13 +147,11 @@ export class ItemResolver {
 
   //  CONTENT
 
-  @Throttle(10, 60)
   @Query()
   async contents () {
     return this.itemService.contents
   }
 
-  @Throttle(10, 60)
   @Query()
   @Bind(Args())
   async content ({ id }) {
@@ -179,34 +166,39 @@ export class ItemResolver {
 
   // USER
 
-  @Throttle(10, 60)
   @Query()
   @Bind(Args())
   async user ({ id }) {
     const ret = this.itemService.getUser(id)
-    return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
+    return this.configService.get('interfaces.restrain')
+      ? this.itemService.filterOutRetrainIds(
+        ret,
+        this.restraintService.getIdsAsStringArray()
+      )
+      : ret
   }
 
-  @Throttle(10, 60)
   @Query()
   async users () {
     return _.map(this.itemService.users, (user) => {
       const ret = this.itemService.getUser(user.id)
-      return (this.configService.get('interfaces.restrain')) ? this.itemService.filterOutRetrainIds(ret, this.restraintService.getIdsAsStringArray()) : ret
-    }
-    )
+      return this.configService.get('interfaces.restrain')
+        ? this.itemService.filterOutRetrainIds(
+          ret,
+          this.restraintService.getIdsAsStringArray()
+        )
+        : ret
+    })
   }
 
   // SERVER
 
-  @Throttle(10, 60)
   @Query()
   @Bind(Args())
   async server ({ url }) {
     return this.itemService.getServer(url)
   }
 
-  @Throttle(10, 60)
   @Query()
   async servers () {
     return _.map(this.itemService.servers, (server) =>

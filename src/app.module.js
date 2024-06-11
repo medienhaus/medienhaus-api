@@ -15,9 +15,11 @@ import { ApolloDriver } from '@nestjs/apollo'
 import { ItemResolver } from './item.resolver'
 import { join } from 'path'
 import * as fs from 'fs'
-import { ThrottlerModule } from '@nestjs/throttler'
-
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
+import { APP_GUARD } from '@nestjs/core'
 import RestrainTokenMiddleware from './restrain-token.middleware'
+
+import { GqlThrottlerGuard } from './GqlThrottlerGuard'
 
 @Module({
   imports: [
@@ -32,8 +34,11 @@ import RestrainTokenMiddleware from './restrain-token.middleware'
         outputAs: 'class'
       },
       playground: true,
-      introspection: true
+      introspection: true,
+      context: ({ req, res }) => ({ req, res })
     }),
+    ScheduleModule.forRoot(),
+    HttpModule,
     ThrottlerModule.forRoot([
       {
         name: 'short',
@@ -50,10 +55,7 @@ import RestrainTokenMiddleware from './restrain-token.middleware'
         ttl: 60000,
         limit: 100
       }
-    ]),
-
-    ScheduleModule.forRoot(),
-    HttpModule
+    ])
   ],
   controllers: [
     AppController,
@@ -62,6 +64,11 @@ import RestrainTokenMiddleware from './restrain-token.middleware'
     ApiRestrainController
   ],
   providers: [
+
+    {
+      provide: APP_GUARD,
+      useClass: GqlThrottlerGuard
+    },
     AppService,
     {
       provide: 'ITEM_PROVIDER',
