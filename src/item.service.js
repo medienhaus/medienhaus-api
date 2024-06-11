@@ -103,7 +103,7 @@ export class ItemService {
       return { [space.id]: space }
     })
 
-    filtedObjects.forEach((ele) => {
+    filtedObjects?.forEach((ele) => {
       this.items[Object.keys(ele)[0]] = ele[Object.keys(ele)[0]]
     })
 
@@ -146,6 +146,9 @@ export class ItemService {
     if (!this.initiallyFetched) this.initiallyFetched = true
 
     if (this.configService.get('fetch.dump')) {
+      if (!fs.existsSync('./dump/dump.json')) {
+        fs.mkdirSync('./dump/', { recursive: true })
+      }
       fs.writeFileSync(
         './dump/dump.json',
         JSON.stringify({

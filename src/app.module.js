@@ -80,7 +80,7 @@ import { GqlThrottlerGuard } from './GqlThrottlerGuard'
           configService.get('fetch.dump')
         ) {
           console.log('loading dump')
-          const dump = JSON.parse(fs.readFileSync('./dump/dump.json'))
+          const dump = fs.readFileSync('./dump/dump.json') ? JSON.parse(fs.readFileSync('./dump/dump.json')) : (fs.mkdirSync('./dump/', { recursive: true }) && {})
           if (dump) {
             x.allSpaces = dump.allSpaces
             x.items = dump.items
