@@ -1259,7 +1259,6 @@ export class ItemService {
         }
       })
     }
-
     return {
       id,
       allocation: space?.allocation,
@@ -1276,14 +1275,10 @@ export class ItemService {
         members: space.members,
         created: space.created
       },
-      description: {
-        default: _.find(
-          rawSpace.stateEvents,
-          (event) => event.type === 'm.room.topic'
-        )?.content?.topic,
-        EN: space?.topicEn,
-        DE: space?.topicDe
-      },
+      description: space?.descriptions?.reduce((acc, { name, topic }) => {
+        acc[name] = topic
+        return acc
+      }, {}),
       parents: parentIds,
       localDepth: space.localDepth
         ? space.localDepth
