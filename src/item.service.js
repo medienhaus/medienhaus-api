@@ -940,11 +940,13 @@ export class ItemService {
   }
 
   async getContent (projectSpaceId, language) {
-    // const cachedContent = this.contents.find((cache) => cache.id === projectSpaceId && cache.language === language)
-    // if (cachedContent) return cachedContent.content
+    const cachedContent = this.contents.find((cache) => cache.id === projectSpaceId && cache.language === language && Date.now() - cache.created < this.configService.get('limits.caching.content.ttl', 1000 * 60 * 3))
+
+    if (cachedContent) return cachedContent.content
 
     const contentBlocks = await this.getContentBlocks(projectSpaceId, language)
-    // this.contents.push({ id: projectSpaceId, language, content: contentBlocks })
+    await new Promise((r) => setTimeout(r, 100))
+    this.contents.push({ id: projectSpaceId, language, content: contentBlocks, created: Date.now() })
     if (!contentBlocks) return
 
     const ret = {
