@@ -20,7 +20,32 @@ export default () => ({
     rest_v2: true,
     graphql: true,
     graphql_playground: true,
-    post: true
+    post: true,
+    restrain: false
+  },
+  access: {
+    restrain: {
+      tokens: ['someKey'],
+      users: []
+    }
+  },
+  limits: {
+    restrainTimeout: 2880,
+    ratelimit: {
+      short: {
+        limit: 30,
+        ttl: 1000
+      },
+      medium: {
+        limit: 80,
+        ttl: 10000
+      },
+      long: {
+        limit: 500,
+        ttl: 60000
+
+      }
+    }
   },
   application: {
     name: 'medienhaus',

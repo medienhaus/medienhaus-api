@@ -39,23 +39,27 @@ import { GqlThrottlerGuard } from './GqlThrottlerGuard'
     }),
     ScheduleModule.forRoot(),
     HttpModule,
-    ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 1000,
-        limit: 3
-      },
-      {
-        name: 'medium',
-        ttl: 10000,
-        limit: 20
-      },
-      {
-        name: 'long',
-        ttl: 60000,
-        limit: 100
-      }
-    ])
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService) => ([
+        {
+          name: 'short',
+          ttl: configService.get('limits.ratelimit.short.ttl', 1000),
+          limit: configService.get('limits.ratelimit.short.limit', 30)
+        },
+        {
+          name: 'medium',
+          ttl: configService.get('limits.ratelimit.short.ttl', 10000),
+          limit: configService.get('limits.ratelimit.short.limit', 80)
+        },
+        {
+          name: 'long',
+          ttl: configService.get('limits.ratelimit.short.ttl', 60000),
+          limit: configService.get('limits.ratelimit.short.limit', 500)
+        }
+      ])
+    })
   ],
   controllers: [
     AppController,
