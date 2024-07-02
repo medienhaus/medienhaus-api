@@ -15,7 +15,7 @@ import { ApolloDriver } from '@nestjs/apollo'
 import { ItemResolver } from './item.resolver'
 import { join } from 'path'
 import * as fs from 'fs'
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
+import { ThrottlerModule } from '@nestjs/throttler'
 import { APP_GUARD } from '@nestjs/core'
 import RestrainTokenMiddleware from './restrain-token.middleware'
 

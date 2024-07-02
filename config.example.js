@@ -45,6 +45,11 @@ export default () => ({
         ttl: 60000
 
       }
+    },
+    caching: {
+      content: {
+        ttl: 60000
+      }
     }
   },
   application: {
