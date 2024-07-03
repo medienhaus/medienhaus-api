@@ -30,6 +30,7 @@ export class ItemService {
     this.servers = []
     this.users = []
     this.contents = []
+    this.renderedContents = []
 
     this.initiallyFetched = false
     this.batchCounter = 0
@@ -940,16 +941,15 @@ export class ItemService {
   }
 
   async getContent (projectSpaceId, language) {
-    const cachedContent = this.contents.find((cache) => cache.id === projectSpaceId && cache.language === language && Date.now() - cache.created < this.configService.get('limits.caching.content.ttl', 1000 * 60 * 3))
+    const cachedContent = this.renderedContents.find((cache) => cache.itemId === projectSpaceId && cache.language === language && Date.now() - cache.created < this.configService.get('limits.caching.content.ttl', 1000 * 60 * 3))
+    console.log(cachedContent)
+    if (cachedContent) return cachedContent.data
 
-    if (cachedContent) return cachedContent.content
+    const { id, contentBlocks } = await this.getContentBlocks(projectSpaceId, language)
 
-    const contentBlocks = await this.getContentBlocks(projectSpaceId, language)
-    await new Promise((r) => setTimeout(r, 100))
-    this.contents.push({ id: projectSpaceId, language, content: contentBlocks, created: Date.now() })
     if (!contentBlocks) return
-
     const ret = {
+      id,
       content: contentBlocks,
       formattedContent: Object.keys(contentBlocks)
         .map((index) => contentBlocks[index].formatted_content)
@@ -959,6 +959,12 @@ export class ItemService {
     this.items[projectSpaceId].content = ret.content
     this.items[projectSpaceId].formattedContent = ret.formattedContent
 
+    const existingIndex = this.contents.findIndex((cache) => cache.itemId === projectSpaceId && cache.language === language)
+    if (existingIndex === -1) {
+      this.renderedContents.push({ itemId: projectSpaceId, language, data: ret, created: Date.now() })
+    } else {
+      this.renderedContents[existingIndex] = { itemId: projectSpaceId, language, data: ret, created: Date.now() }
+    }
     return ret
   }
 
@@ -1043,7 +1049,8 @@ export class ItemService {
             {
               template: cached.template,
               content: cached.content,
-              formatted_content: cached.formatted_content
+              formatted_content: cached.formatted_content,
+              id: contentRoom.room_id
             }
         } else {
           // Get the last message of the current content room
@@ -1151,19 +1158,27 @@ export class ItemService {
             content,
             formatted_content: formattedContent
           }
-          this.contents.push(cachedRoom)
+          const roomIndex = this.contents.findIndex(room => room.id === cachedRoom.id)
+
+          // If the room exists, replace it with cachedRoom
+          if (roomIndex !== -1) {
+            this.contents[roomIndex] = cachedRoom
+          } else {
+            // If the room does not exist, push cachedRoom into this.contents
+            this.contents.push(cachedRoom)
+          }
           // Append this content block's data to our result set
           result[contentRoom.name.substring(0, contentRoom.name.indexOf('_'))] =
             {
               template,
               content,
-              formatted_content: formattedContent
+              formatted_content: formattedContent,
+              id: contentRoom.room_id
             }
         }
       })
     )
-
-    return result
+    return { contentBlocks: result, id: languageSpaces[language] }
   }
 
   /// /// API V2
