@@ -1681,12 +1681,23 @@ export class ItemService {
     const fullTree = await this.getFullTree(id)
 
     const ids = []
-    return _.map(this._getEntries(fullTree, []), (entry) => {
+    let ret = _.map(this._getEntries(fullTree, []), (entry) => {
       if (!ids.includes(entry.id)) {
         ids.push(entry.id)
         return entry
       }
     })
+
+    ret = _.filter(
+      ret,
+      (entry) =>
+
+        entry && (entry.type === 'context' || (entry.type === 'item' &&
+        this.items[entry?.id] !== _.isNil &&
+          this.items[entry?.id]?.published === 'public'))
+    )
+
+    return ret
   }
 
   _getEntries (level, entries) {
