@@ -1531,7 +1531,11 @@ export class ItemService {
     _.forEach(types, (type, key) => {
       ret[key] = []
       _.forEach(type, (typeElement) => {
-        ret[key].push(this._abstractSpace(typeElement))
+        if (!typeElement.published || typeElement.published === 'public') {
+          ret[key].push(this._abstractSpace(typeElement))
+        } else if (typeElement.published === 'draft') {
+          // skip
+        }
       })
     })
     return ret
