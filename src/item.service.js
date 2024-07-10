@@ -8,6 +8,7 @@ import fs from 'fs'
 import { join } from 'path'
 import { isNull } from 'lodash'
 import { LegacyInterpreter } from './legacy-interpreter.service'
+import { Cron } from '@nestjs/schedule'
 
 export const test = 10000
 
@@ -53,6 +54,11 @@ export class ItemService {
       this.httpService,
       this.matrixClient
     )
+  }
+
+  @Cron('0 */30 * * * *')
+  clearGraphQlCache () {
+    this.graphQlCache = {}
   }
 
   async fetch () {
@@ -942,7 +948,7 @@ export class ItemService {
 
   async getContent (projectSpaceId, language) {
     const cachedContent = this.renderedContents.find((cache) => cache.itemId === projectSpaceId && cache.language === language && Date.now() - cache.created < this.configService.get('limits.caching.content.ttl', 1000 * 60 * 3))
-    console.log(cachedContent)
+
     if (cachedContent) return cachedContent.data
 
     const { id, contentBlocks } = await this.getContentBlocks(projectSpaceId, language)
@@ -2043,6 +2049,7 @@ export class ItemService {
     const parents = this._getParentsOfId(id)
     // and stateEvents of parents
     parents?.forEach((parent) => {
+      delete this.graphQlCache[parent]
       // check if purge from all parent or just specific ones
       if (!options?.purge) {
         if (!options?.parentIds.some((p) => p === parent)) {
@@ -2164,6 +2171,7 @@ export class ItemService {
         ) {
           // checks if the found path is part of the partentIds before deleting otherwise will skip
           _.unset(this.structure, pathWay) // this deletes the key
+          options?.parentIds?.forEach((p) => { delete this.graphQlCache[p] })
         }
       }
     }
@@ -2180,6 +2188,7 @@ export class ItemService {
   }
 
   async _applyUpdate (id, options) {
+    delete this.graphQlCache[id]
     const startTime = Date.now()
     const max = options.max ? options.max : this.configService.get('fetch.max')
     const depth = options.depth
