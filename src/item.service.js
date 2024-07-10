@@ -948,7 +948,7 @@ export class ItemService {
 
   async getContent (projectSpaceId, language) {
     const cachedContent = this.renderedContents.find((cache) => cache.itemId === projectSpaceId && cache.language === language && Date.now() - cache.created < this.configService.get('limits.caching.content.ttl', 1000 * 60 * 3))
-    console.log(cachedContent)
+
     if (cachedContent) return cachedContent.data
 
     const { id, contentBlocks } = await this.getContentBlocks(projectSpaceId, language)
@@ -1860,7 +1860,6 @@ export class ItemService {
   }
 
   convertSpace (id, space, currentDepth = 0, maxDepth = 5) {
-    console.log(this.graphQlCache)
     if (currentDepth >= maxDepth) return
     if (!space) space = this._findSpace(id)
     if (!space) {
