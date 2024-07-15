@@ -486,10 +486,13 @@ export class ItemService {
         tempId = tempId.split(':')[1]
         tempId = '@donotuse-' + this.makeid(15) + ':' + tempId
 
-        authors.push({
-          id: tempId,
-          name: credit
-        })
+        const creditName = credit.includes(' @') ? credit.split(' @')[0] : credit
+        if (!authors.find(author => author.name === creditName)) {
+          authors.push({
+            id: tempId,
+            name: creditName
+          })
+        }
       })
     }
 
