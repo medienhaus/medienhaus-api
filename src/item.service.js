@@ -138,19 +138,12 @@ export class ItemService {
       }
     })
 
-    Logger.log(
-      'Fetched ' +
-        Object.keys(allSpaces).length +
-        ' spaces with ' +
-        Object.keys(this.items).length +
-        ' items, after: ' +
-        Math.round((Date.now() - this.fistFetch) / 10 / 60) / 100 +
-        ' minutes,  which took: ' +
-        Math.round((((Date.now() - fetchStart) / 1000) * 100) / 100) +
-        ' seconds'
-    )
     this.lastFetch = Date.now()
     if (!this.initiallyFetched) this.initiallyFetched = true
+
+    if (this.configService.get('fetch.dumpContent')) {
+      this._getContentForDump()
+    }
 
     if (this.configService.get('fetch.dump')) {
       if (!fs.existsSync('./dump/dump.json')) {
@@ -168,6 +161,47 @@ export class ItemService {
           contents: this.contents
         })
       )
+    }
+
+    Logger.log(
+      'Fetched ' +
+        Object.keys(allSpaces).length +
+        ' spaces with ' +
+        Object.keys(this.items).length +
+        ' items, after: ' +
+        Math.round((Date.now() - this.fistFetch) / 10 / 60) / 100 +
+        ' minutes,  which took: ' +
+        Math.round((((Date.now() - fetchStart) / 1000) * 100) / 100) +
+        ' seconds'
+    )
+  }
+
+  async _getContentForDump () {
+    // _.forEach(this._allRawSpaces, async (i, space) => {
+    for await (const [i, space] of Object.keys(this._allRawSpaces).entries()) {
+      const d = (
+        await this.httpService.axiosRef(
+          this.configService.get('matrix.homeserver_base_url') +
+            `/_matrix/client/r0/rooms/${space}/messages`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization:
+                'Bearer ' + this.configService.get('matrix.access_token')
+            },
+            params: {
+              // @TODO Skip deleted messages
+              limit: 1,
+              dir: 'b',
+              // Only consider m.room.message events
+              filter: JSON.stringify({ types: ['m.room.message'] })
+            }
+          }
+        )
+      ).data.chunk[0]
+      await new Promise((r) => setTimeout(r, 100))
+      Logger.log('get content:\t' + i + '/' + Object.keys(this._allRawSpaces).length)
+      this._allRawSpaces[space].content = d
     }
   }
 

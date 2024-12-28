@@ -21,7 +21,8 @@ export default () => ({
     graphql: true,
     graphql_playground: true,
     post: true,
-    restrain: false
+    restrain: false,
+    dumpContent: false
   },
   access: {
     restrain: {

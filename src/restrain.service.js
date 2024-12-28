@@ -15,7 +15,7 @@ export class RestrainService {
 
     setInterval(() => {
       this.ids = []
-      console.log('ids cleared')
+      //   console.log('ids cleared')
     }, restrainTimeoutMilliseconds)
   }
 
